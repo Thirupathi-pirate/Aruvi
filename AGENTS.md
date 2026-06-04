@@ -1,5 +1,16 @@
 # Aruvi — Agent Guide
 
+## Project Overview
+Aruvi is a **Telegram-based file browser and media player** for Android (mobile + TV). Users log in via a Telegram bot, browse files/folders stored on their Telegram account, and stream videos/audio directly — no local storage needed.
+
+It is a fork of `subinps/TelePlay` (package `com.telegramtv`), modified extensively for a better mobile app experience and a dedicated Android TV leanback UI. The backend runs on Hugging Face Spaces — the app just connects to it via Retrofit API.
+
+### Architecture
+- **Login**: QR code or bot token → get JWT token → auth header on all requests
+- **File browsing**: folders tree hierarchy, each folder can contain files + subfolders
+- **Media playback**: ExoPlayer (Media3 1.2.1) with DASH/HLS/MP4 support, quality presets, external player, double-tap seek (mobile)
+- **Two products from one codebase**: `mobile` (phone/tablet, touchscreen) and `tv` (Android TV, leanback D-pad) via Gradle product flavors
+
 ## Build & Debug Loop
 
 ```bash

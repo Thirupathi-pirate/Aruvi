@@ -2,7 +2,9 @@ package com.aruvi.tir.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -95,7 +97,7 @@ fun TelePlayMobileTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         shapes = ExpressiveShapes,
-        typography = MobileTypography,
+        typography = Typography,
         content = content
     )
 }

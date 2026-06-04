@@ -14,6 +14,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
@@ -36,9 +37,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
-/**
- * Audio/Subtitle track information.
- */
 data class TrackInfo(
     val index: Int,
     val groupIndex: Int,
@@ -47,9 +45,6 @@ data class TrackInfo(
     val isSelected: Boolean
 )
 
-/**
- * Subtitle size options.
- */
 enum class SubtitleSize(val displayName: String, val scale: Float) {
     SMALL("Small", 0.7f),
     MEDIUM("Medium", 1.0f),
@@ -57,9 +52,6 @@ enum class SubtitleSize(val displayName: String, val scale: Float) {
     EXTRA_LARGE("Extra Large", 1.8f)
 }
 
-/**
- * Parsed error information for user-friendly display.
- */
 data class PlaybackError(
     val title: String,
     val description: String,
@@ -76,9 +68,6 @@ enum class ErrorType {
     UNKNOWN
 }
 
-/**
- * Player UI state.
- */
 data class PlayerUiState(
     val isLoading: Boolean = true,
     val isPlaying: Boolean = false,
@@ -90,12 +79,10 @@ data class PlayerUiState(
     val showSettings: Boolean = false,
     val file: FileItem? = null,
     val error: PlaybackError? = null,
-    // Track info
     val audioTracks: List<TrackInfo> = emptyList(),
     val subtitleTracks: List<TrackInfo> = emptyList(),
     val subtitleSize: SubtitleSize = SubtitleSize.MEDIUM,
     val subtitlesEnabled: Boolean = true,
-    // Enhanced seek/playback
     val seekSpeed: Int = 10_000,
     val showSeekIndicator: Boolean = false,
     val seekIndicatorText: String = "",
@@ -105,15 +92,12 @@ data class PlayerUiState(
     val videoScale: Float = 1.0f,
     val videoOffsetX: Float = 0f,
     val videoOffsetY: Float = 0f,
-    val orientationLock: Int = 0, // 0=Auto, 1=Landscape, 2=Portrait
+    val orientationLock: Int = 0,
     val playbackSpeed: Float = 1.0f,
     val preferredQuality: String = "auto",
     val isAudioFile: Boolean = false
 )
 
-/**
- * ViewModel for the player screen.
- */
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -123,7 +107,48 @@ class PlayerViewModel @Inject constructor(
     private val filesRepository: FilesRepository,
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository
-    ) : ViewModel() {
+) : ViewModel() {
+
+    fun setResizeMode(mode: Int) {
+        _uiState.value = _uiState.value.copy(toggleResizeMode = mode)
+    }
+
+    fun setVideoScale(scale: Float) {
+        _uiState.value = _uiState.value.copy(videoScale = scale.coerceIn(0.5f, 5.0f))
+    }
+
+    fun setVideoPan(x: Float, y: Float) {
+        _uiState.value = _uiState.value.copy(videoOffsetX = x, videoOffsetY = y)
+    }
+
+    fun setOrientationLock(mode: Int) {
+        _uiState.value = _uiState.value.copy(orientationLock = mode)
+    }
+
+    fun cycleOrientation() {
+        val current = _uiState.value.orientationLock
+        val next = (current + 1) % 3
+        _uiState.value = _uiState.value.copy(orientationLock = next)
+    }
+
+    fun updatePan(deltaX: Float, deltaY: Float) {
+        val currentX = _uiState.value.videoOffsetX
+        val currentY = _uiState.value.videoOffsetY
+        _uiState.value = _uiState.value.copy(
+            videoOffsetX = currentX + deltaX,
+            videoOffsetY = currentY + deltaY
+        )
+    }
+
+    fun cycleResizeMode() {
+        val current = _uiState.value.toggleResizeMode
+        val next = when (current) {
+            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
+        _uiState.value = _uiState.value.copy(toggleResizeMode = next, videoScale = 1.0f)
+    }
 
     private val fileId: Int = savedStateHandle.get<Int>("fileId") ?: 0
 
@@ -155,9 +180,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Set up ExoPlayer event listener.
-     */
     @OptIn(UnstableApi::class)
     private fun setupPlayerListener() {
         exoPlayer.addListener(object : Player.Listener {
@@ -182,7 +204,6 @@ class PlayerViewModel @Inject constructor(
                         saveProgress(completed = true)
                     }
                     Player.STATE_IDLE -> {
-                        // Idle
                     }
                 }
             }
@@ -199,7 +220,6 @@ class PlayerViewModel @Inject constructor(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                // Save progress immediately before transitioning to error state
                 saveProgress()
                 val parsedError = parsePlaybackError(error)
                 _uiState.value = _uiState.value.copy(
@@ -210,9 +230,6 @@ class PlayerViewModel @Inject constructor(
         })
     }
 
-    /**
-     * Parse playback error into user-friendly message.
-     */
     @OptIn(UnstableApi::class)
     private fun parsePlaybackError(error: PlaybackException): PlaybackError {
         val message = error.message ?: ""
@@ -220,7 +237,6 @@ class PlayerViewModel @Inject constructor(
         val fullDetails = "$message\n$cause"
 
         return when {
-            // Codec/Format not supported
             message.contains("NO_EXCEEDS_CAPABILITIES", ignoreCase = true) ||
             message.contains("Decoder init failed", ignoreCase = true) ||
             message.contains("codec", ignoreCase = true) ||
@@ -235,7 +251,6 @@ class PlayerViewModel @Inject constructor(
                     errorType = ErrorType.CODEC_NOT_SUPPORTED
                 )
             }
-            // Network errors
             error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
             error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
             message.contains("Unable to connect", ignoreCase = true) ||
@@ -248,7 +263,6 @@ class PlayerViewModel @Inject constructor(
                     errorType = ErrorType.NETWORK_ERROR
                 )
             }
-            // Auth errors
             message.contains("401", ignoreCase = true) ||
             message.contains("403", ignoreCase = true) ||
             message.contains("Unauthorized", ignoreCase = true) -> {
@@ -260,7 +274,6 @@ class PlayerViewModel @Inject constructor(
                     errorType = ErrorType.AUTH_ERROR
                 )
             }
-            // File not found
             message.contains("404", ignoreCase = true) ||
             message.contains("not found", ignoreCase = true) -> {
                 PlaybackError(
@@ -271,7 +284,6 @@ class PlayerViewModel @Inject constructor(
                     errorType = ErrorType.FILE_NOT_FOUND
                 )
             }
-            // Generic error
             else -> {
                 PlaybackError(
                     title = "Playback Error",
@@ -284,11 +296,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Extract codec info from error message.
-     */
     private fun extractCodecInfo(message: String): String {
-        // Try to extract codec type from error message
         return when {
             message.contains("hevc", ignoreCase = true) || 
             message.contains("hvc1", ignoreCase = true) ||
@@ -307,9 +315,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Update available audio and subtitle tracks.
-     */
     @OptIn(UnstableApi::class)
     private fun updateTracks() {
         val tracks = exoPlayer.currentTracks
@@ -354,9 +359,6 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Generate user-friendly track name.
-     */
     @OptIn(UnstableApi::class)
     private fun getTrackName(format: Format, index: Int, type: String): String {
         val language = format.language?.let { lang ->
@@ -371,9 +373,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Select an audio track.
-     */
     @OptIn(UnstableApi::class)
     fun selectAudioTrack(trackInfo: TrackInfo) {
         val tracks = exoPlayer.currentTracks
@@ -388,13 +387,9 @@ class PlayerViewModel @Inject constructor(
             .build()
     }
 
-    /**
-     * Select a subtitle track, or disable subtitles.
-     */
     @OptIn(UnstableApi::class)
     fun selectSubtitleTrack(trackInfo: TrackInfo?) {
         if (trackInfo == null) {
-            // Disable all text tracks
             exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
                 .buildUpon()
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -416,17 +411,10 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Set subtitle size.
-     */
     fun setSubtitleSize(size: SubtitleSize) {
         _uiState.value = _uiState.value.copy(subtitleSize = size)
-        // Note: Actual subtitle styling would need CaptionStyleCompat applied to PlayerView
     }
 
-    /**
-     * Toggle settings panel visibility.
-     */
     fun toggleSettings() {
         _uiState.value = _uiState.value.copy(
             showSettings = !_uiState.value.showSettings,
@@ -439,24 +427,16 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Hide settings panel.
-     */
     fun hideSettings() {
         _uiState.value = _uiState.value.copy(showSettings = false)
         scheduleControlsHide()
     }
 
-    /**
-     * Load media and start playback.
-     * Checks for a local file in Downloads first; falls back to streaming.
-     */
     @OptIn(UnstableApi::class)
     fun loadAndPlay() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            // Load file info
             val fileResult = filesRepository.getFile(fileId)
             fileResult.fold(
                 onSuccess = { file ->
@@ -465,7 +445,6 @@ class PlayerViewModel @Inject constructor(
                         isAudioFile = file.isAudio
                     )
 
-                    // Fetch resume position from backend if not already set
                     if (resumePosition <= 0) {
                         filesRepository.getWatchProgress(fileId).onSuccess { progress ->
                             progress?.let {
@@ -474,7 +453,6 @@ class PlayerViewModel @Inject constructor(
                         }
                     }
 
-                    // Check if a local copy exists in Downloads
                     val downloadsDir = Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOWNLOADS
                     )
@@ -485,22 +463,18 @@ class PlayerViewModel @Inject constructor(
                     val mediaSourceFactory: DefaultMediaSourceFactory
 
                     if (useLocalFile) {
-                        // ── Play from local file ──
                         val localUri = Uri.fromFile(localFile)
                         mediaItem = MediaItem.Builder()
                             .setUri(localUri)
                             .setMediaId(fileId.toString())
                             .build()
-                        // DefaultDataSource.Factory handles both file:// and http:// URIs
                         mediaSourceFactory = DefaultMediaSourceFactory(
                             DefaultDataSource.Factory(context, httpDataSourceFactory)
                         )
                     } else {
-                        // ── Stream from server ──
                         val serverUrl = settingsRepository.getServerUrl()
                         val token = authRepository.getAccessToken()
 
-                        // Configure HTTP headers with auth
                         httpDataSourceFactory.setDefaultRequestProperties(
                             if (token != null) {
                                 mapOf("Authorization" to "Bearer $token")
@@ -518,11 +492,9 @@ class PlayerViewModel @Inject constructor(
                         mediaSourceFactory = DefaultMediaSourceFactory(httpDataSourceFactory)
                     }
 
-                    // Load and prepare
                     exoPlayer.setMediaSource(mediaSourceFactory.createMediaSource(mediaItem))
                     exoPlayer.prepare()
 
-                    // Seek to resume position if provided
                     if (resumePosition > 0) {
                         exoPlayer.seekTo(resumePosition)
                     }
@@ -545,11 +517,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Retry playback after error.
-     */
     fun retry() {
-        // Save current position before clearing so we can resume from here
         resumePosition = exoPlayer.currentPosition.coerceAtLeast(0)
         saveProgress()
         exoPlayer.stop()
@@ -557,16 +525,10 @@ class PlayerViewModel @Inject constructor(
         loadAndPlay()
     }
 
-    /**
-     * Set resume position before loading.
-     */
     fun setResumePosition(position: Long) {
         resumePosition = position
     }
 
-    /**
-     * Toggle play/pause.
-     */
     fun togglePlayback() {
         if (exoPlayer.isPlaying) {
             exoPlayer.pause()
@@ -577,19 +539,14 @@ class PlayerViewModel @Inject constructor(
         showControls()
     }
 
-    /**
-     * Open the current video in an external player.
-     */
     fun openInExternalPlayer(context: Context) {
         viewModelScope.launch {
             val file = _uiState.value.file ?: return@launch
             val serverUrl = settingsRepository.getServerUrl()
             
-            // Get public link instead of tokenized one
             val publicLinkResult = filesRepository.getPublicLink(file.id, serverUrl)
             
             val streamUrl = publicLinkResult.getOrElse {
-                // Fallback to tokenized if public link fails
                 "$serverUrl/api/stream/${file.id}"
             }
             
@@ -605,23 +562,14 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Play.
-     */
     fun play() {
         exoPlayer.play()
     }
 
-    /**
-     * Pause.
-     */
     fun pause() {
         exoPlayer.pause()
     }
 
-    /**
-     * Seek to position in milliseconds.
-     */
     fun seekTo(positionMs: Long) {
         val clampedPosition = positionMs.coerceIn(0, exoPlayer.duration)
         exoPlayer.seekTo(clampedPosition)
@@ -629,25 +577,15 @@ class PlayerViewModel @Inject constructor(
         showControls()
     }
 
-    /**
-     * Optimistically update current position (for scrubbing).
-     */
     fun updateCurrentPosition(position: Long) {
         _uiState.value = _uiState.value.copy(currentPosition = position)
     }
 
-    /**
-     * Commit seek after scrubbing.
-     */
     fun onSeekEnd() {
         val target = _uiState.value.currentPosition
         seekTo(target)
     }
 
-    /**
-     * Calculate accelerating seek amount based on consecutive seek presses.
-     * Pattern: 10s → 30s → 1min → 2min → 5min
-     */
     private fun getAcceleratedSeekMs(): Long {
         val now = System.currentTimeMillis()
         if (now - lastSeekTime > 1500) {
@@ -667,9 +605,6 @@ class PlayerViewModel @Inject constructor(
         return seekMs
     }
 
-    /**
-     * Seek backward with acceleration.
-     */
     fun seekBackward() {
         val seekMs = getAcceleratedSeekMs()
         val newPos = exoPlayer.currentPosition - seekMs
@@ -677,9 +612,6 @@ class PlayerViewModel @Inject constructor(
         showSeekIndicator(seekMs, false)
     }
 
-    /**
-     * Seek forward with acceleration.
-     */
     fun seekForward() {
         val seekMs = getAcceleratedSeekMs()
         val newPos = exoPlayer.currentPosition + seekMs
@@ -687,9 +619,6 @@ class PlayerViewModel @Inject constructor(
         showSeekIndicator(seekMs, true)
     }
 
-    /**
-     * Show seek indicator overlay with auto-hide.
-     */
     private fun showSeekIndicator(seekMs: Long, isForward: Boolean) {
         val text = formatSeekAmount(seekMs)
         _uiState.value = _uiState.value.copy(
@@ -704,9 +633,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Format seek amount for display.
-     */
     private fun formatSeekAmount(ms: Long): String {
         val totalSeconds = ms / 1000
         return when {
@@ -715,9 +641,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Jump to a percentage of the video (0-9 keys = 0%-90%).
-     */
     fun jumpToPercent(percent: Int) {
         val dur = exoPlayer.duration
         if (dur <= 0) return
@@ -736,18 +659,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Jump to exact timestamp.
-     */
     fun jumpToTimestamp(hours: Int, minutes: Int, seconds: Int) {
         val posMs = ((hours * 3600L) + (minutes * 60L) + seconds) * 1000L
         seekTo(posMs)
         _uiState.value = _uiState.value.copy(showJumpDialog = false)
     }
 
-    /**
-     * Toggle jump-to-position dialog.
-     */
     fun toggleJumpDialog() {
         _uiState.value = _uiState.value.copy(
             showJumpDialog = !_uiState.value.showJumpDialog
@@ -757,17 +674,11 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Set playback speed.
-     */
     fun setPlaybackSpeed(speed: Float) {
         exoPlayer.setPlaybackSpeed(speed)
         _uiState.value = _uiState.value.copy(playbackSpeed = speed)
     }
 
-    /**
-     * Set preferred video quality and apply to ExoPlayer.
-     */
     @OptIn(UnstableApi::class)
     fun setPreferredQuality(quality: String) {
         _uiState.value = _uiState.value.copy(preferredQuality = quality)
@@ -796,9 +707,6 @@ class PlayerViewModel @Inject constructor(
             .build()
     }
 
-    /**
-     * Cycle through playback speeds.
-     */
     fun cyclePlaybackSpeed() {
         val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
         val currentIndex = speeds.indexOf(_uiState.value.playbackSpeed)
@@ -806,11 +714,6 @@ class PlayerViewModel @Inject constructor(
         setPlaybackSpeed(speeds[nextIndex])
     }
 
-
-
-    /**
-     * Show controls and schedule auto-hide.
-     */
     fun showControls() {
         _uiState.value = _uiState.value.copy(showControls = true)
         if (!_uiState.value.showSettings) {
@@ -818,18 +721,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Hide controls.
-     */
     fun hideControls() {
         if (_uiState.value.isPlaying && !_uiState.value.showSettings) {
             _uiState.value = _uiState.value.copy(showControls = false)
         }
     }
 
-    /**
-     * Schedule controls to hide after delay.
-     */
     private fun scheduleControlsHide() {
         controlHideJob?.cancel()
         controlHideJob = viewModelScope.launch {
@@ -840,9 +737,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Start tracking playback progress for position updates.
-     */
     private fun startProgressTracking() {
         viewModelScope.launch {
             var ticks = 0
@@ -864,9 +758,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Update current position in state.
-     */
     private fun updatePosition() {
         _uiState.value = _uiState.value.copy(
             currentPosition = exoPlayer.currentPosition,
@@ -875,14 +766,10 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Save current playback progress to backend.
-     */
     fun saveProgress(completed: Boolean = false) {
         val position = (exoPlayer.currentPosition / 1000).toInt()
         val duration = (exoPlayer.duration / 1000).toInt().takeIf { it > 0 }
 
-        // Don't save if position is 0 (initial load failure or not yet started)
         if (position <= 0 && !completed) return
 
         progressSaveJob?.cancel()
@@ -896,10 +783,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Called when leaving the player - save progress.
-     * For audio files, start background playback instead of pausing.
-     */
     fun onLeavePlayer() {
         saveProgress()
         if (_uiState.value.isAudioFile && exoPlayer.isPlaying) {
@@ -911,9 +794,6 @@ class PlayerViewModel @Inject constructor(
 
     private var isBackgroundAudioActive = false
 
-    /**
-     * Start the background audio playback service.
-     */
     fun startBackgroundAudio() {
         isBackgroundAudioActive = true
         val intent = Intent(context, AudioPlaybackService::class.java)
@@ -924,52 +804,10 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Stop the background audio playback service.
-     */
     fun stopBackgroundAudio() {
         isBackgroundAudioActive = false
         val intent = Intent(context, AudioPlaybackService::class.java)
         context.stopService(intent)
-    }
-
-    fun setResizeMode(mode: Int) {
-        _uiState.value = _uiState.value.copy(toggleResizeMode = mode)
-    }
-
-    fun setVideoScale(scale: Float) {
-        _uiState.value = _uiState.value.copy(videoScale = scale.coerceIn(0.5f, 5.0f))
-    }
-
-    fun setVideoPan(x: Float, y: Float) {
-        _uiState.value = _uiState.value.copy(videoOffsetX = x, videoOffsetY = y)
-    }
-
-    fun setOrientationLock(mode: Int) {
-        _uiState.value = _uiState.value.copy(orientationLock = mode)
-    }
-
-    fun cycleOrientation() {
-        val current = _uiState.value.orientationLock
-        val next = (current + 1) % 3
-        _uiState.value = _uiState.value.copy(orientationLock = next)
-    }
-
-    fun updatePan(deltaX: Float, deltaY: Float) {
-        _uiState.value = _uiState.value.copy(
-            videoOffsetX = _uiState.value.videoOffsetX + deltaX,
-            videoOffsetY = _uiState.value.videoOffsetY + deltaY
-        )
-    }
-
-    fun cycleResizeMode() {
-        val current = _uiState.value.toggleResizeMode
-        val next = when (current) {
-            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
-            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-        }
-        _uiState.value = _uiState.value.copy(toggleResizeMode = next, videoScale = 1.0f)
     }
 
     override fun onCleared() {
@@ -980,5 +818,4 @@ class PlayerViewModel @Inject constructor(
             exoPlayer.clearMediaItems()
         }
     }
-
 }

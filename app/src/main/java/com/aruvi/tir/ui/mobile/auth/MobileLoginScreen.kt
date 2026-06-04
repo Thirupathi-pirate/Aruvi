@@ -23,8 +23,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
@@ -63,6 +61,23 @@ fun MobileLoginScreen(
                 )
             )
     ) {
+        // Settings Button (Top Right) — zIndex ensures it stays above the scroll layer
+        IconButton(
+            onClick = { viewModel.toggleServerConfig() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .zIndex(1f)
+                .padding(16.dp)
+                .statusBarsPadding()
+                .size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Server Settings",
+                tint = if (uiState.showServerConfig) MobilePrimary else Color.White.copy(alpha = 0.6f)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -105,6 +120,73 @@ fun MobileLoginScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            // Server Configuration (Collapsible)
+            AnimatedVisibility(
+                visible = uiState.showServerConfig,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                GlassmorphismSurface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            text = "Server Settings",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = uiState.serverUrl,
+                            onValueChange = { viewModel.updateServerUrl(it) },
+                            label = { Text("Server URL", color = Color.White.copy(alpha = 0.6f)) },
+                            placeholder = { Text("http://192.168.1.x:8000") },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = MobilePrimary,
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        // Bot info is now fetched automatically
+                        if (uiState.botUsername.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Connected to @${uiState.botUsername}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MobilePrimary.copy(alpha = 0.8f),
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
+                        Button(
+                            onClick = { viewModel.saveAndRestart() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MobilePrimary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Save & Restart", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
             if (uiState.isLoading) {
                 CircularProgressIndicator(color = MobilePrimary)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -120,6 +202,39 @@ fun MobileLoginScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Login Code Card
+                GlassmorphismSurface(
+                    shape = RoundedCornerShape(24.dp),
+                    borderColor = MobilePrimary.copy(alpha = 0.3f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 48.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = uiState.loginCode!!,
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontSize = 42.sp,
+                                letterSpacing = 4.sp,
+                                fontWeight = FontWeight.Black
+                            ),
+                            color = MobilePrimary,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "Expires in 5 minutes",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
                 // Deep Link Button
                 Button(
                     onClick = {
@@ -148,66 +263,7 @@ fun MobileLoginScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Text("Open @${uiState.botUsername.ifBlank { "Aaruvi_movie_bot" }}", color = Color.White)
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Divider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(Color.White.copy(alpha = 0.1f)))
-                    Text(
-                        text = "OR",
-                        color = Color.White.copy(alpha = 0.3f),
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(Color.White.copy(alpha = 0.1f)))
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Manual code input
-                Text(
-                    text = "Enter code manually",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = uiState.manualCode,
-                    onValueChange = { viewModel.updateManualCode(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Paste login code", color = Color.White.copy(alpha = 0.3f)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = MobilePrimary,
-                        focusedBorderColor = MobilePrimary,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.03f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = { viewModel.verifyManualCode() },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = uiState.manualCode.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MobilePrimary),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("Login", color = Color.White)
-                }
-
+                
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 if (uiState.isPolling) {

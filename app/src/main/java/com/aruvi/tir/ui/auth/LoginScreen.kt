@@ -1,12 +1,17 @@
 package com.aruvi.tir.ui.auth
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -14,12 +19,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,9 +36,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.aruvi.tir.ui.components.TVButton
 import com.aruvi.tir.ui.theme.*
 
-/**
- * Modern login screen for TV authentication via Telegram OTP.
- */
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -37,7 +43,6 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Animated gradient background
     val infiniteTransition = rememberInfiniteTransition(label = "bgGradient")
     val gradientOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -49,7 +54,6 @@ fun LoginScreen(
         label = "gradientShift"
     )
 
-    // Navigate on successful login
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             onLoginSuccess()
@@ -76,7 +80,6 @@ fun LoginScreen(
                 .padding(horizontal = 32.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App logo with glow
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -102,6 +105,108 @@ fun LoginScreen(
                 color = TVTextPrimary,
                 fontWeight = FontWeight.Bold
             )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            IconButton(
+                onClick = { viewModel.toggleServerConfig() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Server Settings",
+                    tint = if (uiState.showServerConfig) TVPrimary else TVTextSecondary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            AnimatedVisibility(
+                visible = uiState.showServerConfig,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                var isFocused by remember { mutableStateOf(false) }
+
+                Surface(
+                    color = Color.White.copy(alpha = 0.04f),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.08f),
+                                    Color.White.copy(alpha = 0.03f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Server URL",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TVTextSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .background(
+                                    TVSurfaceVariant.copy(alpha = 0.5f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .border(
+                                    width = if (isFocused) 2.dp else 0.dp,
+                                    color = if (isFocused) TVPrimary else Color.Transparent,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            BasicTextField(
+                                value = uiState.serverUrl,
+                                onValueChange = { viewModel.updateServerUrl(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { isFocused = it.isFocused },
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = TVTextPrimary
+                                ),
+                                singleLine = true,
+                                cursorBrush = SolidColor(TVPrimary),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                                decorationBox = { innerTextField ->
+                                    if (uiState.serverUrl.isEmpty()) {
+                                        Text(
+                                            text = "http://192.168.1.100:8000",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = TVTextSecondary.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        TVButton(
+                            text = "Save & Restart",
+                            onClick = { viewModel.saveAndRestart() },
+                            isPrimary = true
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -155,7 +260,6 @@ fun LoginScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Left: QR Code
                         if (uiState.qrCodeBitmap != null) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -183,7 +287,6 @@ fun LoginScreen(
 
                         Spacer(modifier = Modifier.width(64.dp))
 
-                        // Right: Text code + instructions
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -195,21 +298,19 @@ fun LoginScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Glassmorphic login code card
                             Surface(
                                 color = Color.White.copy(alpha = 0.06f),
                                 shape = RoundedCornerShape(20.dp),
-                                modifier = Modifier
-                                    .border(
-                                        width = 1.dp,
-                                        brush = Brush.linearGradient(
-                                            listOf(
-                                                Color.White.copy(alpha = 0.12f),
-                                                Color.White.copy(alpha = 0.04f)
-                                            )
-                                        ),
-                                        shape = RoundedCornerShape(20.dp)
-                                    )
+                                modifier = Modifier.border(
+                                    width = 1.dp,
+                                    brush = Brush.linearGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = 0.12f),
+                                            Color.White.copy(alpha = 0.04f)
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
                             ) {
                                 Box(
                                     modifier = Modifier.padding(horizontal = 40.dp, vertical = 20.dp)
@@ -228,7 +329,6 @@ fun LoginScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Bot instruction chip
                             Surface(
                                 color = TVSurfaceVariant.copy(alpha = 0.6f),
                                 shape = RoundedCornerShape(12.dp)
@@ -254,7 +354,6 @@ fun LoginScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // Animated polling indicator
                             if (uiState.isPolling) {
                                 val dotAlpha1 by infiniteTransition.animateFloat(
                                     initialValue = 0.3f, targetValue = 1f,
@@ -311,7 +410,6 @@ fun LoginScreen(
                 }
             }
 
-            // Debug Log
             if (uiState.debugLog.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(

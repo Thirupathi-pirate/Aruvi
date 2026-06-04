@@ -12,8 +12,9 @@ import com.aruvi.tir.data.model.FileItem
 import com.aruvi.tir.data.model.WatchProgress
 import com.aruvi.tir.data.repository.FilesRepository
 import com.aruvi.tir.data.repository.SettingsRepository
-import com.aruvi.tir.download.DownloadStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.aruvi.tir.download.DownloadStatus
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,7 +61,7 @@ class DetailsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DetailsUiState())
     val uiState: StateFlow<DetailsUiState> = _uiState.asStateFlow()
 
-    private var downloadJob: kotlinx.coroutines.Job? = null
+    private var downloadJob: Job? = null
 
     init {
         loadFileDetails()
@@ -211,6 +212,7 @@ class DetailsViewModel @Inject constructor(
         val serverUrl = _uiState.value.serverUrl
         if (serverUrl.isBlank()) return
 
+        // Prevent multiple downloads
         if (_uiState.value.downloadStarted) return
 
         viewModelScope.launch {
@@ -238,9 +240,7 @@ class DetailsViewModel @Inject constructor(
                                         DownloadStatus.RUNNING -> DownloadManager.STATUS_RUNNING
                                         DownloadStatus.PENDING -> DownloadManager.STATUS_PENDING
                                         DownloadStatus.PAUSED -> DownloadManager.STATUS_PAUSED
-                                        DownloadStatus.COMPLETED -> {
-                                            DownloadManager.STATUS_SUCCESSFUL
-                                        }
+                                        DownloadStatus.COMPLETED -> DownloadManager.STATUS_SUCCESSFUL
                                         DownloadStatus.FAILED -> DownloadManager.STATUS_FAILED
                                         DownloadStatus.CANCELLED -> null
                                     },

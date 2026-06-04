@@ -9,7 +9,8 @@ plugins {
 
 android {
     namespace = "com.aruvi.tir"
-    compileSdk = 34
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     // Load local.properties at android block level
     val localProperties = Properties()
@@ -20,10 +21,10 @@ android {
 
     defaultConfig {
         applicationId = "com.aruvi.tir"
-        minSdk = 21
-        targetSdk = 34
-        versionCode = 6
-        versionName = "1.0.1"
+        minSdk = 29
+        targetSdk = 36
+        versionCode = 7
+        versionName = "2.0.0"
 
         val serverUrl = localProperties.getProperty("TELEGRAM_TV_SERVER_URL", "https://lavender7736-teleplay-backend.hf.space")
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$serverUrl\"")

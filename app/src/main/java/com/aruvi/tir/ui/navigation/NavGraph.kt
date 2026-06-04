@@ -1,7 +1,5 @@
 package com.aruvi.tir.ui.navigation
 
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,9 +31,7 @@ fun NavGraph(
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
-        enterTransition = { fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) },
-        exitTransition = { fadeOut(animationSpec = androidx.compose.animation.core.tween(300)) }
+        startDestination = startDestination
     ) {
         // Login Screen
         composable(Screen.Login.route) {

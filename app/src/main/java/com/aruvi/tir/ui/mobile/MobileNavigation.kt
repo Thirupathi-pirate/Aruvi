@@ -1,7 +1,8 @@
 package com.aruvi.tir.ui.mobile
 
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -10,9 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +33,7 @@ import androidx.navigation.navArgument
 import com.aruvi.tir.ui.mobile.auth.MobileLoginScreen
 import com.aruvi.tir.ui.mobile.home.MobileHomeScreen
 import com.aruvi.tir.ui.mobile.player.MobilePlayerScreen
+import androidx.compose.material3.MaterialTheme
 
 sealed class BottomNavItem(
     val route: String,
@@ -52,9 +56,7 @@ fun MobileScaffold(
     NavHost(
         navController = rootNavController,
         startDestination = startDestination,
-        modifier = Modifier.fillMaxSize(),
-        enterTransition = { fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) },
-        exitTransition = { fadeOut(animationSpec = androidx.compose.animation.core.tween(300)) }
+        modifier = Modifier.fillMaxSize()
     ) {
         // 1. Login Screen (Full Screen)
         composable("login") {
@@ -112,13 +114,11 @@ fun MainAppScreen(
         // Inner NavHost for Tabs
         NavHost(
             navController = tabNavController,
-            startDestination = BottomNavItem.Home.route,
+            startDestination = BottomNavItem.Home.route + "?folderId={folderId}&folderName={folderName}",
             modifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
-                .fillMaxSize(),
-            enterTransition = { fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) },
-            exitTransition = { fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) }
+                .fillMaxSize()
         ) {
             composable(
                 route = BottomNavItem.Home.route + "?folderId={folderId}&folderName={folderName}",

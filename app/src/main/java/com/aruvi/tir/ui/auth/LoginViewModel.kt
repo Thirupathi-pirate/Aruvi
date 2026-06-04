@@ -1,9 +1,12 @@
 package com.aruvi.tir.ui.auth
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aruvi.tir.data.model.AuthResponse
+import com.aruvi.tir.data.model.LoginCodeResponse
 import com.aruvi.tir.data.repository.AuthRepository
 import com.aruvi.tir.data.repository.SettingsRepository
 import com.google.zxing.BarcodeFormat
@@ -20,13 +23,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-/**
- * Login screen state.
- */
 data class LoginUiState(
     val loginCode: String? = null,
     val loginUrl: String? = null,
-    val qrCodeBitmap: android.graphics.Bitmap? = null,
+    val qrCodeBitmap: Bitmap? = null,
     val expiresAt: String? = null,
     val isLoading: Boolean = true,
     val isPolling: Boolean = false,
@@ -35,12 +35,9 @@ data class LoginUiState(
     val debugLog: String = "",
     val serverUrl: String = "",
     val botUsername: String = "",
-    val manualCode: String = ""
+    val showServerConfig: Boolean = false
 )
 
-/**
- * ViewModel for the login screen.
- */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -57,22 +54,27 @@ class LoginViewModel @Inject constructor(
         loadServerUrl()
     }
 
-    /**
-     * Load saved server URL.
-     */
     private fun loadServerUrl() {
         viewModelScope.launch {
             val url = settingsRepository.serverUrl.first()
             val bot = settingsRepository.botUsername.first()
             _uiState.value = _uiState.value.copy(serverUrl = url, botUsername = bot)
-            fetchBotInfo()
-            generateLoginCode()
+
+            if (url.isNotEmpty()) {
+                fetchBotInfo()
+                generateLoginCode()
+            }
         }
     }
 
-    /**
-     * Fetch bot info from the backend.
-     */
+    fun updateServerUrl(url: String) {
+        _uiState.value = _uiState.value.copy(serverUrl = url)
+
+        if (url.startsWith("http") && url.length > 10) {
+            fetchBotInfo()
+        }
+    }
+
     fun fetchBotInfo() {
         viewModelScope.launch {
             authRepository.getBotInfo().onSuccess { botInfo ->
@@ -82,26 +84,48 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Generate a new login code.
-     */
+    fun updateBotUsername(username: String) {
+        _uiState.value = _uiState.value.copy(botUsername = username)
+        viewModelScope.launch {
+            settingsRepository.setBotUsername(username)
+        }
+    }
+
+    fun toggleServerConfig() {
+        _uiState.value = _uiState.value.copy(
+            showServerConfig = !_uiState.value.showServerConfig
+        )
+    }
+
+    fun saveAndRestart() {
+        viewModelScope.launch {
+            val url = _uiState.value.serverUrl
+            if (url.isNotEmpty()) {
+                settingsRepository.setServerUrl(url)
+                val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                Runtime.getRuntime().exit(0)
+            }
+        }
+    }
+
     fun generateLoginCode() {
-        // Stop any existing polling for an old code
         stopPolling()
 
         viewModelScope.launch {
-            // Save server URL before generating code
             settingsRepository.setServerUrl(_uiState.value.serverUrl)
 
             _uiState.value = _uiState.value.copy(
-                isLoading = true, 
+                isLoading = true,
                 error = null,
-                qrCodeBitmap = null
+                qrCodeBitmap = null,
+                debugLog = "Starting generateLoginCode...\n"
             )
 
             try {
                 val result = authRepository.generateLoginCode()
-                
+
                 result.fold(
                     onSuccess = { response ->
                         val bot = _uiState.value.botUsername.ifBlank { "Aaruvi_movie_bot" }
@@ -114,7 +138,8 @@ class LoginViewModel @Inject constructor(
                             loginUrl = url,
                             qrCodeBitmap = qrBitmap,
                             expiresAt = response.expiresAt,
-                            isLoading = false
+                            isLoading = false,
+                            debugLog = _uiState.value.debugLog + "Success! Code: ${response.code}\n"
                         )
                         startPolling(response.code)
                     },
@@ -122,29 +147,27 @@ class LoginViewModel @Inject constructor(
                         e.printStackTrace()
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = "Failed: ${e.message}"
+                            error = "Failed: ${e.message}",
+                            debugLog = _uiState.value.debugLog + "Failed: ${e.message}\n"
                         )
                     }
                 )
             } catch (e: Exception) {
                  _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Crash: ${e.message}"
+                    error = "Crash: ${e.message}",
+                    debugLog = _uiState.value.debugLog + "Crash: ${e.message}\n"
                 )
             }
         }
     }
 
-    /**
-     * Start polling for login confirmation.
-     */
     private fun startPolling(code: String) {
         stopPolling()
 
         pollingJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isPolling = true)
 
-            // Poll every 2 seconds for up to 5 minutes
             repeat(150) {
                 val result = authRepository.verifyLoginCode(code)
                 result.fold(
@@ -156,7 +179,6 @@ class LoginViewModel @Inject constructor(
                         return@launch
                     },
                     onFailure = { e ->
-                        // Check if code expired
                         if (e.message?.contains("expired") == true) {
                             _uiState.value = _uiState.value.copy(
                                 isPolling = false,
@@ -164,14 +186,12 @@ class LoginViewModel @Inject constructor(
                             )
                             return@launch
                         }
-                        // Otherwise continue polling
                     }
                 )
 
                 delay(2000)
             }
 
-            // Timeout after 5 minutes
             _uiState.value = _uiState.value.copy(
                 isPolling = false,
                 error = "Login timeout. Please try again."
@@ -179,29 +199,6 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun updateManualCode(code: String) {
-        _uiState.value = _uiState.value.copy(manualCode = code)
-    }
-
-    fun verifyManualCode() {
-        val code = _uiState.value.manualCode.trim()
-        if (code.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Please enter a code")
-            return
-        }
-
-        stopPolling()
-        _uiState.value = _uiState.value.copy(
-            loginCode = code,
-            manualCode = "",
-            error = null
-        )
-        startPolling(code)
-    }
-
-    /**
-     * Stop polling.
-     */
     fun stopPolling() {
         pollingJob?.cancel()
         pollingJob = null
@@ -225,4 +222,3 @@ class LoginViewModel @Inject constructor(
         return bitmap
     }
 }
-

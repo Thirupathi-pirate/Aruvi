@@ -9,5 +9,4 @@
 .cxx
 /app/build
 /app/release
-*.apk
 *.aab

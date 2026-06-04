@@ -23,8 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aruvi.tir.ui.components.TVButton
 import com.aruvi.tir.ui.theme.*
@@ -69,8 +67,8 @@ fun LoginScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .padding(horizontal = 32.dp, vertical = 16.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 64.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
@@ -149,13 +147,15 @@ fun LoginScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 48.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
+                            .height(400.dp),
+                        horizontalArrangement = Arrangement.spacedBy(32.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // LEFT: Login code
                         Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Text(
                                 text = "Login Code",
@@ -252,17 +252,21 @@ fun LoginScreen(
                         // RIGHT: QR code
                         if (uiState.qrCodeBitmap != null) {
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
                                 Surface(
                                     color = Color.White,
                                     shape = RoundedCornerShape(16.dp),
-                                    modifier = Modifier.size(300.dp)
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.7f)
+                                        .aspectRatio(1f)
                                 ) {
                                     Image(
                                         bitmap = uiState.qrCodeBitmap!!.asImageBitmap(),
                                         contentDescription = "Scan to login",
-                                        modifier = Modifier.padding(12.dp),
+                                        modifier = Modifier.padding(16.dp),
                                         contentScale = ContentScale.Fit
                                     )
                                 }

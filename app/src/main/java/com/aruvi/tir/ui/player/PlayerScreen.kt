@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.font.FontWeight
@@ -292,18 +293,13 @@ fun PlayerScreen(
                 bufferedPosition = uiState.bufferedPosition,
                 duration = uiState.duration,
                 playbackSpeed = uiState.playbackSpeed,
-                hasAudioTracks = uiState.audioTracks.size > 1,
-                hasSubtitles = uiState.subtitleTracks.isNotEmpty(),
                 onPlayPause = { viewModel.togglePlayback() },
                 onSeekBackward = { viewModel.seekBackward() },
                 onSeekForward = { viewModel.seekForward() },
                 onSeek = { viewModel.seekTo(it) },
                 onBack = onBackClick,
                 onSettings = { viewModel.toggleSettings() },
-                onJumpTo = { viewModel.toggleJumpDialog() },
-                onSpeedCycle = { viewModel.cyclePlaybackSpeed() },
-                onOpenExternal = { viewModel.openInExternalPlayer(context) },
-                onResizeMode = { viewModel.cycleResizeMode() }
+                onJumpTo = { viewModel.toggleJumpDialog() }
             )
         }
 
@@ -320,11 +316,14 @@ fun PlayerScreen(
                 subtitlesEnabled = uiState.subtitlesEnabled,
                 playbackSpeed = uiState.playbackSpeed,
                 preferredQuality = uiState.preferredQuality,
+                currentResizeMode = uiState.toggleResizeMode,
                 onSelectAudio = { viewModel.selectAudioTrack(it) },
                 onSelectSubtitle = { viewModel.selectSubtitleTrack(it) },
                 onSubtitleSizeChange = { viewModel.setSubtitleSize(it) },
                 onSpeedChange = { viewModel.setPlaybackSpeed(it) },
                 onQualityChange = { viewModel.setPreferredQuality(it) },
+                onResizeModeChange = { viewModel.setResizeMode(it) },
+                onOpenExternal = { viewModel.openInExternalPlayer(context) },
                 onClose = { viewModel.hideSettings() }
             )
         }
@@ -638,18 +637,13 @@ private fun PlayerControls(
     bufferedPosition: Long,
     duration: Long,
     playbackSpeed: Float,
-    hasAudioTracks: Boolean,
-    hasSubtitles: Boolean,
     onPlayPause: () -> Unit,
     onSeekBackward: () -> Unit,
     onSeekForward: () -> Unit,
     onSeek: (Long) -> Unit,
     onBack: () -> Unit,
     onSettings: () -> Unit,
-    onJumpTo: () -> Unit,
-    onSpeedCycle: () -> Unit,
-    onOpenExternal: () -> Unit,
-    onResizeMode: () -> Unit
+    onJumpTo: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -704,36 +698,6 @@ private fun PlayerControls(
                 }
             }
 
-            // External player button
-            ControlIconButton(
-                icon = Icons.AutoMirrored.Filled.OpenInNew,
-                contentDescription = "External Player",
-                onClick = onOpenExternal,
-                size = 44.dp
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Speed button
-            ControlIconButton(
-                icon = Icons.Default.Speed,
-                contentDescription = "Speed",
-                onClick = onSpeedCycle,
-                size = 44.dp
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Resize mode button
-            ControlIconButton(
-                icon = Icons.Default.Crop,
-                contentDescription = "Resize mode",
-                onClick = onResizeMode,
-                size = 44.dp
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
             // Jump button
             ControlIconButton(
                 icon = Icons.Default.Timer,
@@ -742,15 +706,15 @@ private fun PlayerControls(
                 size = 44.dp
             )
 
-            if (hasAudioTracks || hasSubtitles) {
-                Spacer(modifier = Modifier.width(8.dp))
-                ControlIconButton(
-                    icon = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    onClick = onSettings,
-                    size = 44.dp
-                )
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Settings button (always visible)
+            ControlIconButton(
+                icon = Icons.Default.Settings,
+                contentDescription = "Settings",
+                onClick = onSettings,
+                size = 44.dp
+            )
         }
 
         // ── Bottom controls ──
@@ -975,7 +939,8 @@ private fun PlayPauseButton(
         color = if (isFocused) TVPrimary else TVPrimary.copy(alpha = 0.9f),
         shape = CircleShape,
         modifier = Modifier
-            .size((80 * scale).dp)
+            .size(80.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { isFocused = it.isFocused }
             .then(
                 if (isFocused) Modifier.shadow(
@@ -1286,11 +1251,14 @@ private fun SettingsPanel(
     subtitlesEnabled: Boolean,
     playbackSpeed: Float,
     preferredQuality: String,
+    currentResizeMode: Int,
     onSelectAudio: (TrackInfo) -> Unit,
     onSelectSubtitle: (TrackInfo?) -> Unit,
     onSubtitleSizeChange: (SubtitleSize) -> Unit,
     onSpeedChange: (Float) -> Unit,
     onQualityChange: (String) -> Unit,
+    onResizeModeChange: (Int) -> Unit,
+    onOpenExternal: () -> Unit,
     onClose: () -> Unit
 ) {
     val firstItemFocusRequester = remember { FocusRequester() }
@@ -1387,6 +1355,28 @@ private fun SettingsPanel(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Resize Mode section
+                    SettingsSectionLabel(title = "Resize Mode", icon = Icons.Default.Crop)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val resizeModes = listOf(
+                            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT to "Fit",
+                            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL to "Fill",
+                            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM to "Zoom"
+                        )
+                        resizeModes.forEach { (mode, label) ->
+                            FocusableSpeedOption(
+                                label = label,
+                                isSelected = currentResizeMode == mode,
+                                onClick = { onResizeModeChange(mode) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     // Audio section
                     if (audioTracks.isNotEmpty()) {
                         SettingsSectionLabel(title = "Audio Track", icon = Icons.AutoMirrored.Filled.VolumeUp)
@@ -1435,6 +1425,51 @@ private fun SettingsPanel(
                                 )
                             }
                         }
+                    }
+                }
+
+                // External Player button
+                Spacer(modifier = Modifier.height(8.dp))
+                var extFocus by remember { mutableStateOf(false) }
+                Surface(
+                    onClick = onOpenExternal,
+                    color = if (extFocus) TVPrimary else TVSurfaceVariant,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .onFocusChanged { extFocus = it.isFocused }
+                        .border(
+                            width = if (extFocus) 2.dp else 0.dp,
+                            color = if (extFocus) Color.White else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                tint = if (extFocus) Color.White else TVPrimary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Open in External Player",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (extFocus) Color.White else TVTextPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = if (extFocus) Color.White else TVTextSecondary
+                        )
                     }
                 }
 

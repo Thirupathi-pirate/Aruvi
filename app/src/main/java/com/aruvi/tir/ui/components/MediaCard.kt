@@ -17,8 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,7 +60,7 @@ fun MediaCard(
         modifier = modifier
             .width(220.dp)
             .height(180.dp)
-            .scale(scale)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { isFocused = it.isFocused }
             .then(
                 if (isFocused) Modifier.shadow(
@@ -252,7 +252,7 @@ fun LargeMediaCard(
         modifier = modifier
             .width(320.dp)
             .height(220.dp)
-            .scale(scale)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { isFocused = it.isFocused }
             .then(
                 if (isFocused) Modifier.shadow(

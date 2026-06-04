@@ -1,13 +1,23 @@
 # Aruvi — Agent Guide
 
-## Build
+## Build & Debug Loop
+
 ```bash
-./gradlew assembleMobileDebug    # mobile debug APK
-./gradlew assembleMobileRelease  # mobile release APK
-./gradlew assembleTvDebug        # TV debug APK
-./gradlew assembleTvRelease      # TV release APK
+# ── Fast compile check (debug session only) ──
+./gradlew compileTvDebugKotlin          # TV Kotlin only (fastest, ~30s)
+./gradlew compileMobileDebugKotlin      # Mobile Kotlin only
+./gradlew kaptTvDebugKotlin compileTvDebugKotlin  # with Hilt annotation processing
+./gradlew kaptMobileDebugKotlin compileMobileDebugKotlin
+
+# ── Full APK build (only for final verification) ──
+GRADLE_USER_HOME=/tmp/.gradle ./gradlew assembleTvDebug
+GRADLE_USER_HOME=/tmp/.gradle ./gradlew assembleMobileDebug
+GRADLE_USER_HOME=/tmp/.gradle ./gradlew assembleTvRelease
+GRADLE_USER_HOME=/tmp/.gradle ./gradlew assembleMobileRelease
 ```
-APKs → `app/build/outputs/apk/{flavor}/release/`
+- **Debug session** — only run `compile*Kotlin`. Never build full APK during development.
+- **Release APK** uses R8 minification, takes ~8min. Only at the very end.
+- **`GRADLE_USER_HOME=/tmp/.gradle`** — keeps build cache in /tmp, avoids filling disk.
 
 ## Product Flavors
 | Flavor | minSdk | targetSdk | compileSdk | Uses Feature |
@@ -17,19 +27,32 @@ APKs → `app/build/outputs/apk/{flavor}/release/`
 
 ## Project Map
 - **Product flavors** — `mobile` (phone), `tv` (Android TV), share all `.kt` source files
-- **`data/`** — API (Retrofit), models (Gson), repos (DataStore) — **do not modify**, these are from upstream TelePlay and are pre-tested
-- **`data/`** — API (Retrofit), models (Gson), repos (DataStore) — **do not modify**, these are from upstream TelePlay and are pre-tested
-- **`di/`**, **`download/`**, **`service/`**, **`TelePlayApp.kt`** — also upstream, do not modify
-- **`ui/`** — TV screens (leanback Compose)
-- **`ui/mobile/`** — phone/tablet screens (standard Compose)
+- **`data/`** — API (Retrofit), models (Gson), repos (DataStore) — **NEVER modify**, upstream TelePlay
+- **`di/`**, **`download/`**, **`service/`**, **`TelePlayApp.kt`** — also upstream, **NEVER modify**
+- **`ui/`** — TV screens (leanback Compose) — safe to modify
+- **`ui/mobile/`** — phone/tablet screens (standard Compose) — safe to modify
 - **`ui/player/`** — shared player ViewModel used by both TV and mobile
 
+## Critical Rules
+1. **Never touch backend files** (`data/`, `di/`, `download/`, `service/`, `TelePlayApp.kt`) — upstream TelePlay code. Changes break upstream sync.
+2. **Debug session = compile check only.** No full APK builds.
+3. **TV is simpler than mobile** — no server URL config, no Telegram button, no unnecessary features on TV.
+4. **Use /tmp for Gradle cache** — `GRADLE_USER_HOME=/tmp/.gradle`
+
+## TV UI Conventions
+- **Animation** — use `Modifier.graphicsLayer { scaleX; scaleY }` NOT `Modifier.scale()`. The latter triggers layout pass and causes jank on leanback hardware.
+- **No bouncy springs** — use `DampingRatioNoBouncy` + `StiffnessHigh`.
+- **Login screen** — code and QR code take equal halves (`weight(1f)` each), QR fills its half.
+- **Player controls** — Speed/Resize/External Player go inside the Settings panel (slide-in from right), NOT in the top bar.
+- **Settings button** — always visible in the top bar (not conditional on audio/subtitle tracks).
+- **DPAD_UP during playback** — opens the Settings panel.
+
 ## Key Conventions
-- **Never touch backend files** (`data/`, `di/`, `download/`, `service/`, `TelePlayApp.kt`) — they are tested upstream code
 - **Signing** — env vars (`RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) or `local.properties`
 - **Server URL** — defaults to `https://lavender7736-teleplay-backend.hf.space`, overridable via `local.properties` key `TELEGRAM_TV_SERVER_URL` or in-app settings
 - **R8 full mode** disabled in `gradle.properties` (breaks Retrofit/Gson)
 - **ZXing 3.5.3** added for QR code login
+- **gradle.properties** — configured for parallel + caching + 8g heap
 
 ## Dev Setup
 ```bash

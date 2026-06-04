@@ -305,7 +305,8 @@ fun PlayerScreen(
                 onBack = onBackClick,
                 onSettings = { viewModel.toggleSettings() },
                 onJumpTo = { viewModel.toggleJumpDialog() },
-                onSpeedCycle = { viewModel.cyclePlaybackSpeed() }
+                onSpeedCycle = { viewModel.cyclePlaybackSpeed() },
+                onOpenExternal = { viewModel.openInExternalPlayer(context) }
             )
         }
 
@@ -321,10 +322,12 @@ fun PlayerScreen(
                 subtitleSize = uiState.subtitleSize,
                 subtitlesEnabled = uiState.subtitlesEnabled,
                 playbackSpeed = uiState.playbackSpeed,
+                preferredQuality = uiState.preferredQuality,
                 onSelectAudio = { viewModel.selectAudioTrack(it) },
                 onSelectSubtitle = { viewModel.selectSubtitleTrack(it) },
                 onSubtitleSizeChange = { viewModel.setSubtitleSize(it) },
                 onSpeedChange = { viewModel.setPlaybackSpeed(it) },
+                onQualityChange = { viewModel.setPreferredQuality(it) },
                 onClose = { viewModel.hideSettings() }
             )
         }
@@ -647,7 +650,8 @@ private fun PlayerControls(
     onBack: () -> Unit,
     onSettings: () -> Unit,
     onJumpTo: () -> Unit,
-    onSpeedCycle: () -> Unit
+    onSpeedCycle: () -> Unit,
+    onOpenExternal: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -702,15 +706,25 @@ private fun PlayerControls(
                 }
             }
 
+            // External player button
+            ControlIconButton(
+                icon = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = "External Player",
+                onClick = onOpenExternal,
+                size = 44.dp
+            ),
+
+            Spacer(modifier = Modifier.width(8.dp)),
+
             // Speed button
             ControlIconButton(
                 icon = Icons.Default.Speed,
                 contentDescription = "Speed",
                 onClick = onSpeedCycle,
                 size = 44.dp
-            )
+            ),
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp)),
 
             // Jump button
             ControlIconButton(
@@ -1263,10 +1277,12 @@ private fun SettingsPanel(
     subtitleSize: SubtitleSize,
     subtitlesEnabled: Boolean,
     playbackSpeed: Float,
+    preferredQuality: String,
     onSelectAudio: (TrackInfo) -> Unit,
     onSelectSubtitle: (TrackInfo?) -> Unit,
     onSubtitleSizeChange: (SubtitleSize) -> Unit,
     onSpeedChange: (Float) -> Unit,
+    onQualityChange: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val firstItemFocusRequester = remember { FocusRequester() }
@@ -1340,6 +1356,24 @@ private fun SettingsPanel(
                                 onClick = { onSpeedChange(speed) },
                                 modifier = Modifier.weight(1f),
                                 focusRequester = if (speed == 0.5f) firstItemFocusRequester else null
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Quality section
+                    SettingsSectionLabel(title = "Video Quality", icon = Icons.Default.Hd)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val qualities = listOf("auto" to "Auto", "1080p" to "1080p", "720p" to "720p", "480p" to "480p", "360p" to "360p")
+                        qualities.forEach { (value, label) ->
+                            FocusableSpeedOption(
+                                label = label,
+                                isSelected = preferredQuality == value,
+                                onClick = { onQualityChange(value) },
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }

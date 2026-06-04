@@ -108,6 +108,7 @@ data class PlayerUiState(
     val videoOffsetY: Float = 0f,
     val orientationLock: Int = 0, // 0=Auto, 1=Landscape, 2=Portrait
     val playbackSpeed: Float = 1.0f,
+    val preferredQuality: String = "auto",
     val isAudioFile: Boolean = false
 )
 
@@ -215,6 +216,17 @@ class PlayerViewModel @Inject constructor(
         setupPlayerListener()
         loadAndPlay()
         startProgressTracking()
+        observeQuality()
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun observeQuality() {
+        viewModelScope.launch {
+            settingsRepository.preferredQuality.collect { quality ->
+                _uiState.value = _uiState.value.copy(preferredQuality = quality)
+                applyQualityConstraint(quality)
+            }
+        }
     }
 
     /**
@@ -825,6 +837,37 @@ class PlayerViewModel @Inject constructor(
     fun setPlaybackSpeed(speed: Float) {
         exoPlayer.setPlaybackSpeed(speed)
         _uiState.value = _uiState.value.copy(playbackSpeed = speed)
+    }
+
+    /**
+     * Set preferred video quality and apply to ExoPlayer.
+     */
+    @OptIn(UnstableApi::class)
+    fun setPreferredQuality(quality: String) {
+        _uiState.value = _uiState.value.copy(preferredQuality = quality)
+        viewModelScope.launch {
+            settingsRepository.setPreferredQuality(quality)
+        }
+        applyQualityConstraint(quality)
+    }
+
+    private fun getQualityMaxDimensions(quality: String): Pair<Int, Int> {
+        return when (quality) {
+            "1080p" -> 1920 to 1080
+            "720p" -> 1280 to 720
+            "480p" -> 854 to 480
+            "360p" -> 640 to 360
+            else -> Int.MAX_VALUE to Int.MAX_VALUE
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun applyQualityConstraint(quality: String) {
+        val (maxWidth, maxHeight) = getQualityMaxDimensions(quality)
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setMaxVideoSize(maxWidth, maxHeight)
+            .build()
     }
 
     /**

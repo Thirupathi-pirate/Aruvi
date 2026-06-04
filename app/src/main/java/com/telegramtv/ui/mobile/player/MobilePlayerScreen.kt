@@ -15,9 +15,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -171,7 +170,8 @@ fun MobilePlayerScreen(
                 onSubtitleSizeChange = viewModel::setSubtitleSize,
                 onResizeModeChange = viewModel::setResizeMode,
                 onVideoScaleChange = viewModel::setVideoScale,
-                onOrientationChange = viewModel::setOrientationLock
+                onOrientationChange = viewModel::setOrientationLock,
+                onQualityChange = viewModel::setPreferredQuality
             )
         }
     }
@@ -329,11 +329,20 @@ fun MobilePlayerScreen(
                         }
                     }
                 }
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { 
-                    if (uiState.showControls) viewModel.hideControls() else viewModel.showControls() 
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = { offset ->
+                            val width = size.width.toFloat()
+                            if (offset.x < width / 2) {
+                                viewModel.seekBackward()
+                            } else {
+                                viewModel.seekForward()
+                            }
+                        },
+                        onTap = {
+                            if (uiState.showControls) viewModel.hideControls() else viewModel.showControls()
+                        }
+                    )
                 }
         )
     }
@@ -357,13 +366,13 @@ fun MobilePlayerScreen(
                     onSettings = { viewModel.toggleSettings() },
                     onPip = {
                         if (uiState.isAudioFile) {
-                            // For audio: start background playback and go back
                             viewModel.startBackgroundAudio()
                             onBack()
                         } else {
                             (activity as? MobileMainActivity)?.enterPip()
                         }
                     },
+                    onOpenExternal = { viewModel.openInExternalPlayer(context) },
                     orientationMode = uiState.orientationLock,
                     isAudioFile = uiState.isAudioFile
                 )
@@ -451,6 +460,7 @@ fun MobilePlayerControls(
     onOrientation: () -> Unit,
     onSettings: () -> Unit,
     onPip: () -> Unit,
+    onOpenExternal: () -> Unit,
     orientationMode: Int,
     isAudioFile: Boolean = false
 ) {
@@ -509,6 +519,9 @@ fun MobilePlayerControls(
                             if (isAudioFile) "Background Play" else "PIP",
                             tint = Color.White
                         )
+                    }
+                    IconButton(onClick = onOpenExternal) {
+                        Icon(Icons.AutoMirrored.Filled.OpenInNew, "External Player", tint = Color.White)
                     }
                     IconButton(onClick = onSettings) {
                         Icon(Icons.Filled.Settings, "Settings", tint = Color.White)
@@ -606,10 +619,11 @@ fun PlayerSettingsSheet(
     onSubtitleSizeChange: (SubtitleSize) -> Unit,
     onResizeModeChange: (Int) -> Unit,
     onVideoScaleChange: (Float) -> Unit,
-    onOrientationChange: (Int) -> Unit
+    onOrientationChange: (Int) -> Unit,
+    onQualityChange: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Speed", "Audio", "Subtitles", "Display")
+    val tabs = listOf("Speed", "Audio", "Subtitles", "Display", "Quality")
 
     Column(
         modifier = Modifier
@@ -715,6 +729,26 @@ fun PlayerSettingsSheet(
                             text = size.displayName,
                             isSelected = uiState.subtitleSize == size,
                             onClick = { onSubtitleSizeChange(size) }
+                        )
+                    }
+                }
+            }
+            4 -> { // Quality
+                val qualities = listOf("auto", "1080p", "720p", "480p", "360p")
+                val qualityLabels = mapOf(
+                    "auto" to "Auto",
+                    "1080p" to "1080p",
+                    "720p" to "720p",
+                    "480p" to "480p",
+                    "360p" to "360p"
+                )
+                LazyColumn(modifier = Modifier.height(250.dp)) {
+                    items(qualities) { quality ->
+                        SettingsItem(
+                            text = qualityLabels[quality] ?: quality,
+                            subText = if (quality == "auto") "Let player decide" else null,
+                            isSelected = uiState.preferredQuality == quality,
+                            onClick = { onQualityChange(quality) }
                         )
                     }
                 }

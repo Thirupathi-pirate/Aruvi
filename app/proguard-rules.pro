@@ -2,7 +2,7 @@
 
 # Retrofit
 -keep class kotlin.Metadata { *; }
--keep interface com.telegramtv.data.api.** { *; }
+-keep interface com.aruvi.tir.data.api.** { *; }
 -dontwarn retrofit2.**
 -keep class retrofit2.** { *; }
 -keepattributes Signature
@@ -11,7 +11,7 @@
 -keepattributes EnclosingMethod
 
 # Gson / Data Models
--keep class com.telegramtv.data.model.** { *; }
+-keep class com.aruvi.tir.data.model.** { *; }
 -keep class com.google.gson.** { *; }
 
 # Hilt
@@ -25,8 +25,12 @@
 # FFmpeg extension
 -keep class com.github.ArmynC.** { *; }
 
+# ZXing QR Code
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**
+
 # TV / Leanback (required for TV launcher to find the correct activity)
 -keep class androidx.leanback.** { *; }
 -keep class androidx.tv.** { *; }
--keep class com.telegramtv.ui.MainActivity { *; }
--keep class com.telegramtv.ui.mobile.MobileMainActivity { *; }
+-keep class com.aruvi.tir.ui.MainActivity { *; }
+-keep class com.aruvi.tir.ui.mobile.MobileMainActivity { *; }

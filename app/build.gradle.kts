@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.telegramtv"
+    namespace = "com.aruvi.tir"
     compileSdk = 34
 
     // Load local.properties at android block level
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.telegramtv"
+        applicationId = "com.aruvi.tir"
         minSdk = 21
         targetSdk = 34
         versionCode = 6
@@ -160,6 +160,9 @@ dependencies {
 
     // Datastore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // QR Code generation for TV login
+    implementation("com.google.zxing:core:3.5.3")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

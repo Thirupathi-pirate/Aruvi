@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions -->
-    <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -69,23 +68,12 @@
             android:name=".ui.mobile.MobileMainActivity"
             android:exported="true"
             android:theme="@style/Theme.TelegramTV"
-            android:supportsPictureInPicture="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Player Activity for Picture-in-Picture -->
-        <activity
-            android:name=".ui.player.PlayerActivity"
-            android:configChanges="keyboard|keyboardHidden|navigation|screenSize|smallestScreenSize|screenLayout|orientation"
-            android:launchMode="singleTop"
-            android:supportsPictureInPicture="true"
-            android:resizeableActivity="true"
-            android:screenOrientation="landscape"
-            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

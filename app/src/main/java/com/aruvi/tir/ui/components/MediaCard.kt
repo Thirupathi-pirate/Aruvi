@@ -54,20 +54,32 @@ fun MediaCard(
         ),
         label = "cardScale"
     )
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isFocused) 1f else 0.88f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "cardAlpha"
+    )
 
     Card(
         onClick = onClick,
         modifier = modifier
             .width(220.dp)
             .height(180.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                alpha = cardAlpha
+            }
             .onFocusChanged { isFocused = it.isFocused }
             .then(
                 if (isFocused) Modifier.shadow(
-                    elevation = 12.dp,
+                    elevation = 16.dp,
                     shape = RoundedCornerShape(12.dp),
                     ambientColor = TVAccentGlow,
-                    spotColor = TVPrimary.copy(alpha = 0.25f)
+                    spotColor = TVPrimary.copy(alpha = 0.4f)
                 ) else Modifier
             ),
         colors = CardDefaults.colors(
@@ -246,20 +258,32 @@ fun LargeMediaCard(
         ),
         label = "cardScale"
     )
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isFocused) 1f else 0.88f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "cardAlpha"
+    )
 
     Card(
         onClick = onClick,
         modifier = modifier
             .width(320.dp)
             .height(220.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                alpha = cardAlpha
+            }
             .onFocusChanged { isFocused = it.isFocused }
             .then(
                 if (isFocused) Modifier.shadow(
                     elevation = 16.dp,
                     shape = RoundedCornerShape(16.dp),
                     ambientColor = TVAccentGlow,
-                    spotColor = TVPrimary.copy(alpha = 0.3f)
+                    spotColor = TVPrimary.copy(alpha = 0.45f)
                 ) else Modifier
             ),
         colors = CardDefaults.colors(

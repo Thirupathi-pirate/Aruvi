@@ -95,7 +95,9 @@ data class PlayerUiState(
     val orientationLock: Int = 0,
     val playbackSpeed: Float = 1.0f,
     val preferredQuality: String = "auto",
-    val isAudioFile: Boolean = false
+    val isAudioFile: Boolean = false,
+    val folderAudioFiles: List<FileItem> = emptyList(),
+    val currentAudioIndex: Int = -1
 )
 
 @HiltViewModel
@@ -150,7 +152,7 @@ class PlayerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(toggleResizeMode = next, videoScale = 1.0f)
     }
 
-    private val fileId: Int = savedStateHandle.get<Int>("fileId") ?: 0
+    private var currentFileId: Int = savedStateHandle.get<Int>("fileId") ?: 0
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -202,6 +204,15 @@ class PlayerViewModel @Inject constructor(
                             showControls = true
                         )
                         saveProgress(completed = true)
+
+                        val ui = _uiState.value
+                        if (ui.isAudioFile) {
+                            val nextIndex = ui.currentAudioIndex + 1
+                            if (nextIndex in ui.folderAudioFiles.indices) {
+                                val nextFile = ui.folderAudioFiles[nextIndex]
+                                playNextFile(nextFile.id)
+                            }
+                        }
                     }
                     Player.STATE_IDLE -> {
                     }
@@ -437,7 +448,7 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val fileResult = filesRepository.getFile(fileId)
+            val fileResult = filesRepository.getFile(currentFileId)
             fileResult.fold(
                 onSuccess = { file ->
                     _uiState.value = _uiState.value.copy(
@@ -445,8 +456,24 @@ class PlayerViewModel @Inject constructor(
                         isAudioFile = file.isAudio
                     )
 
+                    if (file.isAudio && file.folderId != null) {
+                        filesRepository.getFiles(
+                            folderId = file.folderId,
+                            page = 1,
+                            perPage = 200,
+                            fileType = "audio"
+                        ).onSuccess { response ->
+                            val audioFiles = response.items.sortedBy { it.fileName }
+                            val index = audioFiles.indexOfFirst { it.id == currentFileId }
+                            _uiState.value = _uiState.value.copy(
+                                folderAudioFiles = audioFiles,
+                                currentAudioIndex = index
+                            )
+                        }
+                    }
+
                     if (resumePosition <= 0) {
-                        filesRepository.getWatchProgress(fileId).onSuccess { progress ->
+                        filesRepository.getWatchProgress(currentFileId).onSuccess { progress ->
                             progress?.let {
                                 resumePosition = it.position.toLong() * 1000L
                             }
@@ -466,7 +493,7 @@ class PlayerViewModel @Inject constructor(
                         val localUri = Uri.fromFile(localFile)
                         mediaItem = MediaItem.Builder()
                             .setUri(localUri)
-                            .setMediaId(fileId.toString())
+                            .setMediaId(currentFileId.toString())
                             .build()
                         mediaSourceFactory = DefaultMediaSourceFactory(
                             DefaultDataSource.Factory(context, httpDataSourceFactory)
@@ -483,10 +510,10 @@ class PlayerViewModel @Inject constructor(
                             }
                         )
 
-                        val streamUrl = "$serverUrl/api/stream/$fileId"
+                        val streamUrl = "$serverUrl/api/stream/$currentFileId"
                         mediaItem = MediaItem.Builder()
                             .setUri(streamUrl)
-                            .setMediaId(fileId.toString())
+                            .setMediaId(currentFileId.toString())
                             .build()
                         httpDataSourceFactory.setAllowCrossProtocolRedirects(true)
                         mediaSourceFactory = DefaultMediaSourceFactory(httpDataSourceFactory)
@@ -515,6 +542,13 @@ class PlayerViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    fun playNextFile(newFileId: Int) {
+        currentFileId = newFileId
+        resumePosition = 0
+        exoPlayer.stop()
+        loadAndPlay()
     }
 
     fun retry() {
@@ -775,7 +809,7 @@ class PlayerViewModel @Inject constructor(
         progressSaveJob?.cancel()
         progressSaveJob = viewModelScope.launch {
             filesRepository.updateWatchProgress(
-                fileId = fileId,
+                fileId = currentFileId,
                 position = position,
                 duration = duration,
                 completed = completed

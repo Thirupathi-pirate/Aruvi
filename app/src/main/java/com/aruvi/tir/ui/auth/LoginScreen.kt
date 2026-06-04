@@ -247,6 +247,15 @@ fun LoginScreen(
                                 onClick = { viewModel.generateLoginCode() },
                                 isPrimary = false
                             )
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                text = "Open Telegram, send /login ${uiState.loginCode} to @${uiState.botUsername.ifBlank { "Aaruvi_movie_bot" }}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TVTextSecondary,
+                                textAlign = TextAlign.Center
+                            )
                         }
 
                         // RIGHT: QR code

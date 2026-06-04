@@ -944,9 +944,9 @@ private fun PlayPauseButton(
             .onFocusChanged { isFocused = it.isFocused }
             .then(
                 if (isFocused) Modifier.shadow(
-                    elevation = 16.dp,
+                    elevation = 20.dp,
                     shape = CircleShape,
-                    ambientColor = TVPrimary.copy(alpha = 0.4f)
+                    ambientColor = TVPrimary.copy(alpha = 0.6f)
                 ) else Modifier
             )
     ) {
@@ -972,6 +972,14 @@ private fun ControlIconButton(
     iconSize: androidx.compose.ui.unit.Dp = 24.dp
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.12f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "ctrlBtnScale"
+    )
 
     Surface(
         onClick = onClick,
@@ -979,6 +987,7 @@ private fun ControlIconButton(
         shape = CircleShape,
         modifier = Modifier
             .size(size)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .onFocusChanged { isFocused = it.isFocused }
             .border(
                 width = if (isFocused) 2.dp else 0.dp,

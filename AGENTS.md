@@ -40,12 +40,16 @@ GRADLE_USER_HOME=/tmp/.gradle ./gradlew assembleMobileRelease
 4. **Use /tmp for Gradle cache** — `GRADLE_USER_HOME=/tmp/.gradle`
 
 ## TV UI Conventions
-- **Animation** — use `Modifier.graphicsLayer { scaleX; scaleY }` NOT `Modifier.scale()`. The latter triggers layout pass and causes jank on leanback hardware.
+- **Animation** — use `Modifier.graphicsLayer { scaleX; scaleY; alpha }` NOT `Modifier.scale()`. The latter triggers layout pass and causes jank on leanback hardware.
+- **Alpha dim (brightness lift)** — unfocused 0.88f → focused 1.0f on cards for visual pop without `RenderEffect` (API 31+).
 - **No bouncy springs** — use `DampingRatioNoBouncy` + `StiffnessHigh`.
-- **Login screen** — code and QR code take equal halves (`weight(1f)` each), QR fills its half.
+- **Login screen** — code and QR code take equal halves (`weight(1f)` each), QR fills its half. Shows instruction: "Open Telegram, send /login {code} to @bot".
 - **Player controls** — Speed/Resize/External Player go inside the Settings panel (slide-in from right), NOT in the top bar.
 - **Settings button** — always visible in the top bar (not conditional on audio/subtitle tracks).
 - **DPAD_UP during playback** — opens the Settings panel.
+- **ControlIconButton scale** — 1.0→1.12 via `graphicsLayer` with stiff spring, no bouncy.
+- **PlayPauseButton shadow** — ambient alpha 0.6f for stronger lift effect.
+- **Auto-play-next (audio)** — `PlayerViewModel` fetches folder audio list on load, advances on STATE_ENDED.
 
 ## Key Conventions
 - **Signing** — env vars (`RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) or `local.properties`
@@ -68,6 +72,16 @@ Kotlin 1.9.22 · AGP 8.5.2 · Gradle 8.7 · Compose BOM 2024.02 · Media3 1.2.1 
 - **Quality control** — `preferredQuality` in player settings (Auto/1080p/720p/480p/360p), applies `setMaxVideoSize` on ExoPlayer
 - **Open in external player** — `Intent.ACTION_VIEW` with `video/*` in both TV and mobile players
 - **Double-tap seek** — mobile only, left half = rewind 10s, right half = forward 10s
+- **Auto-play-next (audio)** — fetches all audio files in same folder, advances sequentially on track end
 
 ## ABI Splits
 `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64` + universal APK
+
+## Last Working Build
+- **Commit**: `bb03ba5` — "feat: TV UI overhaul - equal halves login, graphicsLayer animation, settings consolidation"
+- **Tag**: `v2.0.3`
+- **Release**: https://github.com/Thirupathi-pirate/Aruvi/releases/tag/v2.0.3
+- **Both flavors compiled & released**: TV + mobile arm64-v8a and universal (11MB each)
+
+## Next Planned
+- v2.0.4: Alpha dim + ControlIconButton scale animation + login instruction + auto-play-next audio

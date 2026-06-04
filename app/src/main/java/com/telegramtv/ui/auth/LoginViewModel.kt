@@ -30,7 +30,8 @@ data class LoginUiState(
     val error: String? = null,
     val debugLog: String = "",
     val serverUrl: String = "https://lavender7736-teleplay-backend.hf.space",
-    val botUsername: String = ""
+    val botUsername: String = "",
+    val manualCode: String = ""
 )
 
 /**
@@ -90,8 +91,7 @@ class LoginViewModel @Inject constructor(
 
             _uiState.value = _uiState.value.copy(
                 isLoading = true, 
-                error = null,
-                debugLog = "Starting generateLoginCode...\n"
+                error = null
             )
 
             try {
@@ -102,8 +102,7 @@ class LoginViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             loginCode = response.code,
                             expiresAt = response.expiresAt,
-                            isLoading = false,
-                            debugLog = _uiState.value.debugLog + "Success! Code: ${response.code}\n"
+                            isLoading = false
                         )
                         startPolling(response.code)
                     },
@@ -111,16 +110,14 @@ class LoginViewModel @Inject constructor(
                         e.printStackTrace()
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = "Failed: ${e.message}",
-                            debugLog = _uiState.value.debugLog + "Failed: ${e.message}\n"
+                            error = "Failed: ${e.message}"
                         )
                     }
                 )
             } catch (e: Exception) {
                  _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Crash: ${e.message}",
-                    debugLog = _uiState.value.debugLog + "Crash: ${e.message}\n"
+                    error = "Crash: ${e.message}"
                 )
             }
         }
@@ -168,6 +165,26 @@ class LoginViewModel @Inject constructor(
                 error = "Login timeout. Please try again."
             )
         }
+    }
+
+    fun updateManualCode(code: String) {
+        _uiState.value = _uiState.value.copy(manualCode = code)
+    }
+
+    fun verifyManualCode() {
+        val code = _uiState.value.manualCode.trim()
+        if (code.isBlank()) {
+            _uiState.value = _uiState.value.copy(error = "Please enter a code")
+            return
+        }
+
+        stopPolling()
+        _uiState.value = _uiState.value.copy(
+            loginCode = code,
+            manualCode = "",
+            error = null
+        )
+        startPolling(code)
     }
 
     /**

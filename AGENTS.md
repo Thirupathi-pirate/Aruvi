@@ -2,13 +2,22 @@
 
 ## Build
 ```bash
-./gradlew assembleDebug          # debug APK
-./gradlew assembleRelease        # signed, minified release APK
+./gradlew assembleMobileDebug    # mobile debug APK
+./gradlew assembleMobileRelease  # mobile release APK
+./gradlew assembleTvDebug        # TV debug APK
+./gradlew assembleTvRelease      # TV release APK
 ```
-APKs → `app/build/outputs/apk/`
+APKs → `app/build/outputs/apk/{flavor}/release/`
+
+## Product Flavors
+| Flavor | minSdk | targetSdk | compileSdk | Uses Feature |
+|---|---|---|---|---|
+| **mobile** | 29 | 36 | 36 | `touchscreen required="true"` |
+| **tv** | 29 | 30 | 36 | `leanback required="true"` |
 
 ## Project Map
-- **Single module** — namespace `com.aruvi.tir`, minSdk 21, targetSdk 34
+- **Product flavors** — `mobile` (phone), `tv` (Android TV), share all `.kt` source files
+- **`data/`** — API (Retrofit), models (Gson), repos (DataStore) — **do not modify**, these are from upstream TelePlay and are pre-tested
 - **`data/`** — API (Retrofit), models (Gson), repos (DataStore) — **do not modify**, these are from upstream TelePlay and are pre-tested
 - **`di/`**, **`download/`**, **`service/`**, **`TelePlayApp.kt`** — also upstream, do not modify
 - **`ui/`** — TV screens (leanback Compose)
@@ -29,7 +38,7 @@ cp local.properties.example local.properties
 ```
 
 ## Tech Stack
-Kotlin 1.9.22 · AGP 8.2.2 · Gradle 8.5 · Compose BOM 2024.02 · Media3 1.2.1 · Hilt 2.50 · Retrofit 2.9 · DataStore
+Kotlin 1.9.22 · AGP 8.5.2 · Gradle 8.7 · Compose BOM 2024.02 · Media3 1.2.1 · Hilt 2.50 · Retrofit 2.9 · DataStore
 
 ## Features (kept from Aruvi, not in upstream TelePlay)
 - **QR login** — encodes `https://t.me/$bot?start=$code` via ZXing, displays QR on TV

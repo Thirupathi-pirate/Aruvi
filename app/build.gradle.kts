@@ -19,12 +19,25 @@ android {
         localProperties.load(localPropertiesFile.inputStream())
     }
 
+    flavorDimensions += "device"
+    productFlavors {
+        create("tv") {
+            dimension = "device"
+            targetSdk = 30
+            versionCode = 8
+            versionName = "2.0.0"
+        }
+        create("mobile") {
+            dimension = "device"
+            targetSdk = 36
+            versionCode = 8
+            versionName = "2.0.0"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.aruvi.tir"
         minSdk = 29
-        targetSdk = 36
-        versionCode = 7
-        versionName = "2.0.0"
 
         val serverUrl = localProperties.getProperty("TELEGRAM_TV_SERVER_URL", "https://lavender7736-teleplay-backend.hf.space")
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$serverUrl\"")

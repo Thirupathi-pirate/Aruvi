@@ -3,6 +3,7 @@ package com.aruvi.tir.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import com.aruvi.tir.ui.components.TVButton
 import com.aruvi.tir.ui.components.TVIconButton
 import com.aruvi.tir.ui.theme.*
@@ -95,6 +97,7 @@ fun SettingsScreen(
                             color = Color(0xFF333333),
                             shape = RoundedCornerShape(8.dp)
                         )
+                        .focusable()
                         .clickable { viewModel.showLogoutConfirm() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -290,7 +293,10 @@ private fun SettingsToggle(
     onCheckedChange: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusable()
+            .clickable { onCheckedChange() },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

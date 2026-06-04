@@ -46,7 +46,7 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <!-- Main Activity - TV Launcher -->
+        <!-- Main Activity - TV Launcher (intent-filter in tv/AndroidManifest.xml) -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -55,24 +55,14 @@
             android:banner="@drawable/app_banner"
             android:configChanges="keyboard|keyboardHidden|navigation"
             android:screenOrientation="landscape">
-            
-            <!-- Leanback launcher intent filter -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
         </activity>
 
-        <!-- Main Activity - Mobile Launcher -->
+        <!-- Mobile Activity - Mobile Launcher (intent-filter in mobile/AndroidManifest.xml) -->
         <activity
             android:name=".ui.mobile.MobileMainActivity"
             android:exported="true"
             android:theme="@style/Theme.TelegramTV"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <provider

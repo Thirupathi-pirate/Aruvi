@@ -6,8 +6,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import androidx.tv.foundation.lazy.list.TvLazyColumn
 import com.aruvi.tir.ui.components.*
 import com.aruvi.tir.ui.theme.*
 import java.io.File
@@ -114,139 +113,154 @@ fun DetailsScreen(
                         .padding(48.dp)
                 ) {
                     // Left side - Info
-                    Column(
+                    TvLazyColumn(
                         modifier = Modifier
                             .weight(0.6f)
                             .fillMaxHeight()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.Center
                     ) {
-                        // Back button
-                        TVIconButton(
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = TVTextPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            onClick = onBackClick,
-                            modifier = Modifier.size(48.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        // File name
-                        Text(
-                            text = file.fileName,
-                            style = MaterialTheme.typography.displaySmall,
-                            color = TVTextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Glassmorphic metadata chips
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            GlassMetadataChip(
-                                icon = Icons.Default.Storage,
-                                label = "Size",
-                                value = file.formattedSize
-                            )
-                            file.formattedDuration?.let {
-                                GlassMetadataChip(
-                                    icon = Icons.Default.Timer,
-                                    label = "Duration",
-                                    value = it
-                                )
-                            }
-                            file.resolution?.let {
-                                GlassMetadataChip(
-                                    icon = Icons.Default.HighQuality,
-                                    label = "Quality",
-                                    value = it,
-                                    accent = true
-                                )
-                            }
-                            GlassMetadataChip(
-                                icon = Icons.Default.Description,
-                                label = "Type",
-                                value = file.fileType.uppercase()
+                        item {
+                            Spacer(modifier = Modifier.height(32.dp))
+                        }
+                        item {
+                            // Back button
+                            TVIconButton(
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = TVTextPrimary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                },
+                                onClick = onBackClick,
+                                modifier = Modifier.size(48.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(48.dp))
+                        item {
+                            Spacer(modifier = Modifier.height(32.dp))
 
-                        // Play buttons
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            if (watchProgress != null && watchProgress.position > 0 && !watchProgress.completed) {
-                                FocusablePlayButton(
-                                    text = "Resume from ${watchProgress.formattedPosition}",
-                                    icon = Icons.Default.PlayArrow,
-                                    isPrimary = true,
-                                    onClick = { onPlayClick(fileId, watchProgress.position * 1000L) }
-                                )
+                            // File name
+                            Text(
+                                text = file.fileName,
+                                style = MaterialTheme.typography.displaySmall,
+                                color = TVTextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
-                                FocusablePlayButton(
-                                    text = "Play from Start",
-                                    icon = Icons.Default.Replay,
-                                    isPrimary = false,
-                                    onClick = { onPlayClick(fileId, 0L) }
+                        item {
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            // Glassmorphic metadata chips
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                GlassMetadataChip(
+                                    icon = Icons.Default.Storage,
+                                    label = "Size",
+                                    value = file.formattedSize
                                 )
-                            } else {
-                                FocusablePlayButton(
-                                    text = "Play",
-                                    icon = Icons.Default.PlayArrow,
-                                    isPrimary = true,
-                                    onClick = { onPlayClick(fileId, 0L) }
+                                file.formattedDuration?.let {
+                                    GlassMetadataChip(
+                                        icon = Icons.Default.Timer,
+                                        label = "Duration",
+                                        value = it
+                                    )
+                                }
+                                file.resolution?.let {
+                                    GlassMetadataChip(
+                                        icon = Icons.Default.HighQuality,
+                                        label = "Quality",
+                                        value = it,
+                                        accent = true
+                                    )
+                                }
+                                GlassMetadataChip(
+                                    icon = Icons.Default.Description,
+                                    label = "Type",
+                                    value = file.fileType.uppercase()
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        item {
+                            Spacer(modifier = Modifier.height(48.dp))
 
-                        // Download section — separate row
-                        when {
-                            uiState.downloadStatus == DownloadManager.STATUS_RUNNING ||
-                            uiState.downloadStatus == DownloadManager.STATUS_PENDING -> {
-                                DownloadProgressCard(
-                                    progress = uiState.downloadProgress,
-                                    status = uiState.downloadStatus!!,
-                                    fileName = file.fileName,
-                                    downloadedBytes = uiState.downloadedBytes,
-                                    totalBytes = uiState.totalBytes,
-                                    speed = uiState.downloadSpeed,
-                                    formatBytes = { viewModel.formatBytes(it) }
-                                )
+                            // Play buttons
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                if (watchProgress != null && watchProgress.position > 0 && !watchProgress.completed) {
+                                    FocusablePlayButton(
+                                        text = "Resume from ${watchProgress.formattedPosition}",
+                                        icon = Icons.Default.PlayArrow,
+                                        isPrimary = true,
+                                        onClick = { onPlayClick(fileId, watchProgress.position * 1000L) }
+                                    )
+
+                                    FocusablePlayButton(
+                                        text = "Play from Start",
+                                        icon = Icons.Default.Replay,
+                                        isPrimary = false,
+                                        onClick = { onPlayClick(fileId, 0L) }
+                                    )
+                                } else {
+                                    FocusablePlayButton(
+                                        text = "Play",
+                                        icon = Icons.Default.PlayArrow,
+                                        isPrimary = true,
+                                        onClick = { onPlayClick(fileId, 0L) }
+                                    )
+                                }
                             }
-                            uiState.isFileLocal -> {
-                                // File is downloaded — show local file management
-                                LocalFileCard(
-                                    fileName = file.fileName,
-                                    filePath = uiState.localFilePath ?: "",
-                                    fileSize = viewModel.formatBytes(
-                                        uiState.totalBytes.takeIf { it > 0 }
-                                            ?: File(uiState.localFilePath ?: "").let { f ->
-                                                if (f.exists()) f.length() else 0L
-                                            }
-                                    ),
-                                    onPlayOffline = { onPlayClick(fileId, 0L) },
-                                    onDelete = { viewModel.deleteLocalFile(context) }
-                                )
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Download section — separate row
+                            when {
+                                uiState.downloadStatus == DownloadManager.STATUS_RUNNING ||
+                                uiState.downloadStatus == DownloadManager.STATUS_PENDING -> {
+                                    DownloadProgressCard(
+                                        progress = uiState.downloadProgress,
+                                        status = uiState.downloadStatus!!,
+                                        fileName = file.fileName,
+                                        downloadedBytes = uiState.downloadedBytes,
+                                        totalBytes = uiState.totalBytes,
+                                        speed = uiState.downloadSpeed,
+                                        formatBytes = { viewModel.formatBytes(it) }
+                                    )
+                                }
+                                uiState.isFileLocal -> {
+                                    // File is downloaded — show local file management
+                                    LocalFileCard(
+                                        fileName = file.fileName,
+                                        filePath = uiState.localFilePath ?: "",
+                                        fileSize = viewModel.formatBytes(
+                                            uiState.totalBytes.takeIf { it > 0 }
+                                                ?: File(uiState.localFilePath ?: "").let { f ->
+                                                    if (f.exists()) f.length() else 0L
+                                                }
+                                        ),
+                                        onPlayOffline = { onPlayClick(fileId, 0L) },
+                                        onDelete = { viewModel.deleteLocalFile(context) }
+                                    )
+                                }
+                                else -> {
+                                    FocusablePlayButton(
+                                        text = "Download",
+                                        icon = Icons.Default.CloudDownload,
+                                        isPrimary = false,
+                                        onClick = { viewModel.startDownload(context) }
+                                    )
+                                }
                             }
-                            else -> {
-                                FocusablePlayButton(
-                                    text = "Download",
-                                    icon = Icons.Default.CloudDownload,
-                                    isPrimary = false,
-                                    onClick = { viewModel.startDownload(context) }
-                                )
-                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(32.dp))
                         }
                     }
 

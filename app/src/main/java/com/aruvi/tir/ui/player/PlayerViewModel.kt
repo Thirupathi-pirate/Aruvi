@@ -82,7 +82,7 @@ data class PlayerUiState(
     val audioTracks: List<TrackInfo> = emptyList(),
     val subtitleTracks: List<TrackInfo> = emptyList(),
     val subtitleSize: SubtitleSize = SubtitleSize.MEDIUM,
-    val subtitlesEnabled: Boolean = true,
+    val subtitlesEnabled: Boolean = false,
     val seekSpeed: Int = 10_000,
     val showSeekIndicator: Boolean = false,
     val seekIndicatorText: String = "",
@@ -166,6 +166,10 @@ class PlayerViewModel @Inject constructor(
     private var lastSeekTime: Long = 0L
 
     init {
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+            .build()
         setupPlayerListener()
         loadAndPlay()
         startProgressTracking()

@@ -3,6 +3,7 @@ package com.aruvi.tir.ui.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aruvi.tir.data.model.FileItem
+import com.aruvi.tir.data.model.FolderWithChildren
 import com.aruvi.tir.data.repository.FilesRepository
 import com.aruvi.tir.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -57,6 +58,9 @@ class SearchViewModel @Inject constructor(
             }
         }
     }
+
+    suspend fun loadFolderTree(): List<FolderWithChildren> =
+        foldersRepository.getFolderTree().getOrNull() ?: emptyList()
 
     private fun loadServerUrl() {
         viewModelScope.launch {

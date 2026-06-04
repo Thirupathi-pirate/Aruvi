@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aruvi.tir.data.model.FileItem
 import com.aruvi.tir.data.model.Folder
+import com.aruvi.tir.data.model.FolderWithChildren
 
 @Composable
 fun FileOptionsButton(
@@ -118,35 +120,83 @@ fun InputDialog(title: String, initialValue: String = "", onDismiss: () -> Unit,
 fun MovePickerDialog(
     title: String,
     currentFolderId: Int?,
-    folders: List<Folder>,
     onDismiss: () -> Unit,
-    onConfirm: (Int?) -> Unit
+    onConfirm: (Int?) -> Unit,
+    loadFolderTree: suspend () -> List<FolderWithChildren>
 ) {
+    var rootTree by remember { mutableStateOf<List<FolderWithChildren>>(emptyList()) }
+    var navStack by remember { mutableStateOf(listOf<Pair<String, List<FolderWithChildren>>>()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        val tree = loadFolderTree()
+        rootTree = tree
+        isLoading = false
+        if (tree.isEmpty()) {
+            error = "No folders found"
+        }
+    }
+
+    val currentFolders = navStack.lastOrNull()?.second ?: rootTree
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text("Select target folder:", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 16.dp))
-                
-                // Option for root
-                if (currentFolderId != null) {
-                    TextButton(
-                        onClick = { onConfirm(null) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Home, null, modifier = Modifier.padding(end = 8.dp))
-                        Text("Root Directory")
-                    }
+                Text("Select target folder:", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 12.dp))
+
+                if (navStack.isNotEmpty()) {
+                    Text(
+                        text = navStack.joinToString(" > ") { it.first },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                 }
-                
-                folders.forEach { folder ->
-                    if (folder.id != currentFolderId) {
-                        MoveDestinationItem(
-                            icon = Icons.Default.Folder,
-                            name = folder.name,
-                            onClick = { onConfirm(folder.id) }
-                        )
+
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (error != null) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(error!!, color = MaterialTheme.colorScheme.error)
+                    }
+                } else {
+                    Column {
+                        if (navStack.isNotEmpty()) {
+                            MoveDestinationItem(
+                                icon = Icons.Default.ArrowUpward,
+                                name = ".. (Up)",
+                                onClick = { navStack = navStack.dropLast(1) }
+                            )
+                            TextButton(
+                                onClick = { onConfirm(null) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Home, null, modifier = Modifier.padding(end = 8.dp))
+                                Text("Root Directory")
+                            }
+                        }
+
+                        currentFolders
+                            .filter { it.id != currentFolderId }
+                            .forEach { folder ->
+                                val hasChildren = folder.children.isNotEmpty()
+                                MoveDestinationItem(
+                                    icon = Icons.Default.Folder,
+                                    name = if (hasChildren) "${folder.name}  >" else folder.name,
+                                    onClick = {
+                                        if (hasChildren) {
+                                            navStack = navStack + (folder.name to folder.children)
+                                        } else {
+                                            onConfirm(folder.id)
+                                        }
+                                    }
+                                )
+                            }
                     }
                 }
             }

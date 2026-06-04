@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aruvi.tir.data.model.FileItem
 import com.aruvi.tir.data.model.Folder
+import com.aruvi.tir.data.model.FolderWithChildren
 import com.aruvi.tir.data.repository.FilesRepository
 import com.aruvi.tir.data.repository.FoldersRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -156,6 +157,9 @@ class MobileHomeViewModel @Inject constructor(
     fun refresh() {
         loadContent(_uiState.value.currentFolderId, _uiState.value.currentFolderName)
     }
+
+    suspend fun loadFolderTree(): List<FolderWithChildren> =
+        foldersRepository.getFolderTree().getOrNull() ?: emptyList()
 
     // Selection management
     fun toggleSelection(id: Int, isFolder: Boolean) {

@@ -322,25 +322,25 @@ fun MobileHomeScreen(
         MovePickerDialog(
             title = "Move File",
             currentFolderId = uiState.currentFolderId,
-            folders = uiState.folders,
             onDismiss = { showMoveFileDialog = null },
             onConfirm = { targetId ->
                 viewModel.moveFile(showMoveFileDialog!!, targetId)
                 showMoveFileDialog = null
-            }
+            },
+            loadFolderTree = { viewModel.loadFolderTree() }
         )
     }
     
     if (showMoveFolderDialog != null) {
         MovePickerDialog(
             title = "Move Folder",
-            currentFolderId = uiState.currentFolderId,
-            folders = uiState.folders,
+            currentFolderId = showMoveFolderDialog!!.id,
             onDismiss = { showMoveFolderDialog = null },
             onConfirm = { targetId ->
                 viewModel.moveFolder(showMoveFolderDialog!!, targetId)
                 showMoveFolderDialog = null
-            }
+            },
+            loadFolderTree = { viewModel.loadFolderTree() }
         )
     }
 
@@ -368,13 +368,13 @@ fun MobileHomeScreen(
     if (showMoveSelectedDialog) {
         MovePickerDialog(
             title = "Move Items",
-            currentFolderId = uiState.currentFolderId,
-            folders = uiState.folders,
+            currentFolderId = null,
             onDismiss = { showMoveSelectedDialog = false },
             onConfirm = { targetId ->
                 viewModel.moveSelected(targetId)
                 showMoveSelectedDialog = false
-            }
+            },
+            loadFolderTree = { viewModel.loadFolderTree() }
         )
     }
 

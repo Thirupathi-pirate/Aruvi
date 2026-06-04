@@ -197,12 +197,12 @@ fun MobileSearchScreen(
         MovePickerDialog(
             title = "Move File",
             currentFolderId = showMoveFileDialog!!.folderId,
-            folders = uiState.folders,
             onDismiss = { showMoveFileDialog = null },
             onConfirm = { targetId ->
                 viewModel.moveFile(showMoveFileDialog!!, targetId)
                 showMoveFileDialog = null
-            }
+            },
+            loadFolderTree = { viewModel.loadFolderTree() }
         )
     }
 }

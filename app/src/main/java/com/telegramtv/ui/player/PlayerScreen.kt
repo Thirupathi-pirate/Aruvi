@@ -712,9 +712,9 @@ private fun PlayerControls(
                 contentDescription = "External Player",
                 onClick = onOpenExternal,
                 size = 44.dp
-            ),
+            )
 
-            Spacer(modifier = Modifier.width(8.dp)),
+            Spacer(modifier = Modifier.width(8.dp))
 
             // Speed button
             ControlIconButton(
@@ -722,9 +722,9 @@ private fun PlayerControls(
                 contentDescription = "Speed",
                 onClick = onSpeedCycle,
                 size = 44.dp
-            ),
+            )
 
-            Spacer(modifier = Modifier.width(8.dp)),
+            Spacer(modifier = Modifier.width(8.dp))
 
             // Jump button
             ControlIconButton(

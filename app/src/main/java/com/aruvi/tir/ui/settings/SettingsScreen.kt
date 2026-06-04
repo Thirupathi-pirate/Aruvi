@@ -6,8 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -18,10 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -219,67 +214,6 @@ private fun SettingsItem(label: String, value: String) {
             style = MaterialTheme.typography.bodyLarge,
             color = TVTextPrimary
         )
-    }
-}
-
-/**
- * Settings text field.
- */
-@Composable
-private fun SettingsTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String = ""
-) {
-    var isFocused by remember { mutableStateOf(false) }
-
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = TVTextSecondary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .background(TVSurfaceVariant, RoundedCornerShape(10.dp))
-                .border(
-                    width = if (isFocused) 2.dp else 0.dp,
-                    color = if (isFocused) TVPrimary else Color.Transparent,
-                    shape = RoundedCornerShape(10.dp)
-                )
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { isFocused = it.isFocused },
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = TVTextPrimary
-                ),
-                singleLine = true,
-                cursorBrush = SolidColor(TVPrimary),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                decorationBox = { innerTextField ->
-                    if (value.isEmpty()) {
-                        Text(
-                            text = placeholder,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = TVTextSecondary
-                        )
-                    }
-                    innerTextField()
-                }
-            )
-        }
     }
 }
 

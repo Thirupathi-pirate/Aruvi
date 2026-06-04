@@ -1,35 +1,28 @@
 package com.aruvi.tir.ui.auth
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -106,108 +99,6 @@ fun LoginScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            IconButton(
-                onClick = { viewModel.toggleServerConfig() },
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Server Settings",
-                    tint = if (uiState.showServerConfig) TVPrimary else TVTextSecondary.copy(alpha = 0.5f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            AnimatedVisibility(
-                visible = uiState.showServerConfig,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                var isFocused by remember { mutableStateOf(false) }
-
-                Surface(
-                    color = Color.White.copy(alpha = 0.04f),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.linearGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.White.copy(alpha = 0.03f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Server URL",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = TVTextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .background(
-                                    TVSurfaceVariant.copy(alpha = 0.5f),
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .border(
-                                    width = if (isFocused) 2.dp else 0.dp,
-                                    color = if (isFocused) TVPrimary else Color.Transparent,
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                .padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            BasicTextField(
-                                value = uiState.serverUrl,
-                                onValueChange = { viewModel.updateServerUrl(it) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onFocusChanged { isFocused = it.isFocused },
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = TVTextPrimary
-                                ),
-                                singleLine = true,
-                                cursorBrush = SolidColor(TVPrimary),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                                decorationBox = { innerTextField ->
-                                    if (uiState.serverUrl.isEmpty()) {
-                                        Text(
-                                            text = "http://192.168.1.100:8000",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = TVTextSecondary.copy(alpha = 0.5f)
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        TVButton(
-                            text = "Save & Restart",
-                            onClick = { viewModel.saveAndRestart() },
-                            isPrimary = true
-                        )
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
             when {
@@ -256,47 +147,23 @@ fun LoginScreen(
 
                 uiState.loginCode != null -> {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 48.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (uiState.qrCodeBitmap != null) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Surface(
-                                    color = Color.White,
-                                    shape = RoundedCornerShape(16.dp),
-                                    modifier = Modifier.size(300.dp)
-                                ) {
-                                    Image(
-                                        bitmap = uiState.qrCodeBitmap!!.asImageBitmap(),
-                                        contentDescription = "Scan to login",
-                                        modifier = Modifier.padding(12.dp),
-                                        contentScale = ContentScale.Fit
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Scan to connect",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = TVTextSecondary
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(64.dp))
-
+                        // LEFT: Login code
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Or send this code to the bot",
+                                text = "Login Code",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = TVTextSecondary
                             )
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
                             Surface(
                                 color = Color.White.copy(alpha = 0.06f),
@@ -313,7 +180,7 @@ fun LoginScreen(
                                 )
                             ) {
                                 Box(
-                                    modifier = Modifier.padding(horizontal = 40.dp, vertical = 20.dp)
+                                    modifier = Modifier.padding(horizontal = 48.dp, vertical = 24.dp)
                                 ) {
                                     Text(
                                         text = uiState.loginCode!!,
@@ -323,31 +190,6 @@ fun LoginScreen(
                                         ),
                                         color = TVPrimary,
                                         fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Surface(
-                                color = TVSurfaceVariant.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = null,
-                                        tint = TVSecondary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Send /login ${uiState.loginCode} to your Bot",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = TVTextPrimary
                                     )
                                 }
                             }
@@ -398,13 +240,39 @@ fun LoginScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
                             TVButton(
                                 text = "Generate New Code",
                                 onClick = { viewModel.generateLoginCode() },
                                 isPrimary = false
                             )
+                        }
+
+                        // RIGHT: QR code
+                        if (uiState.qrCodeBitmap != null) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Surface(
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier.size(300.dp)
+                                ) {
+                                    Image(
+                                        bitmap = uiState.qrCodeBitmap!!.asImageBitmap(),
+                                        contentDescription = "Scan to login",
+                                        modifier = Modifier.padding(12.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Scan to connect",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = TVTextSecondary
+                                )
+                            }
                         }
                     }
                 }

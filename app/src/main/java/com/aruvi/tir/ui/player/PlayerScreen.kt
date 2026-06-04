@@ -205,6 +205,7 @@ fun PlayerScreen(
             update = { playerView ->
                 playerView.player = viewModel.exoPlayer
                 playerView.keepScreenOn = uiState.isPlaying
+                playerView.resizeMode = uiState.toggleResizeMode
             },
             modifier = Modifier.fillMaxSize()
         )
@@ -301,7 +302,8 @@ fun PlayerScreen(
                 onSettings = { viewModel.toggleSettings() },
                 onJumpTo = { viewModel.toggleJumpDialog() },
                 onSpeedCycle = { viewModel.cyclePlaybackSpeed() },
-                onOpenExternal = { viewModel.openInExternalPlayer(context) }
+                onOpenExternal = { viewModel.openInExternalPlayer(context) },
+                onResizeMode = { viewModel.cycleResizeMode() }
             )
         }
 
@@ -646,7 +648,8 @@ private fun PlayerControls(
     onSettings: () -> Unit,
     onJumpTo: () -> Unit,
     onSpeedCycle: () -> Unit,
-    onOpenExternal: () -> Unit
+    onOpenExternal: () -> Unit,
+    onResizeMode: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -716,6 +719,16 @@ private fun PlayerControls(
                 icon = Icons.Default.Speed,
                 contentDescription = "Speed",
                 onClick = onSpeedCycle,
+                size = 44.dp
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Resize mode button
+            ControlIconButton(
+                icon = Icons.Default.Crop,
+                contentDescription = "Resize mode",
+                onClick = onResizeMode,
                 size = 44.dp
             )
 

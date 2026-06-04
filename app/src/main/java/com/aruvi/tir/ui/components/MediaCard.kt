@@ -49,8 +49,8 @@ fun MediaCard(
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.08f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
         ),
         label = "cardScale"
     )
@@ -241,8 +241,8 @@ fun LargeMediaCard(
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.05f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
         ),
         label = "cardScale"
     )

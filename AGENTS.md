@@ -58,6 +58,35 @@ GRADLE_USER_HOME=/tmp/.gradle ./gradlew assembleMobileRelease
 - **ZXing 3.5.3** added for QR code login
 - **gradle.properties** — configured for parallel + caching + 8g heap
 
+## CI/CD: Aruvi-workflow
+Release builds are handled by a separate repo: `Thirupathi-pirate/Aruvi-workflow`.
+
+### How to release
+```bash
+# After committing changes to Aruvi:
+git push origin main          # push to Aruvi (your dev repo)
+git push workflow main        # push to Aruvi-workflow → triggers build
+```
+
+The workflow:
+1. Fetches latest code from `Aruvi` repo
+2. Auto-bumps version (v2.0.4 → v2.0.5)
+3. Builds TV + Mobile release APKs
+4. Creates tag + GitHub release with APKs
+
+### Optional: Sync upstream TelePlay backend
+Go to `Aruvi-workflow` → Actions → "Sync & Release" → "Run workflow" → check **"Sync backend from subinps/TelePlay"** → enter version tag → Run.
+
+### Remote configured
+```bash
+git remote add workflow https://github.com/Thirupathi-pirate/Aruvi-workflow.git
+```
+
+### Secrets (on Aruvi-workflow repo)
+- `RELEASE_STORE_PASSWORD`
+- `RELEASE_KEY_PASSWORD`
+- `GH_PAT` — for checking out Aruvi and creating releases
+
 ## Dev Setup
 ```bash
 cp local.properties.example local.properties

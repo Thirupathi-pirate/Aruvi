@@ -4,8 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import androidx.mediarouter.app.MediaRouteButton
+import com.google.android.gms.cast.framework.CastButtonFactory
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -481,6 +485,22 @@ fun MobilePlayerControls(
                     )
                     IconButton(onClick = onResize) {
                         Icon(Icons.Filled.Fullscreen, "Resize", tint = Color.White)
+                    }
+                    val density = LocalDensity.current
+                    val buttonSizePx = with(density) { 48.dp.toPx().toInt() }
+                    Box(
+                        modifier = Modifier.size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                MediaRouteButton(ctx).also { btn: MediaRouteButton ->
+                                    CastButtonFactory.setUpMediaRouteButton(ctx, btn)
+                                    btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)
+                                }
+                            },
+                            modifier = Modifier.size(48.dp)
+                        )
                     }
                     IconButton(onClick = onOrientation) {
                         val icon = when (orientationMode) {

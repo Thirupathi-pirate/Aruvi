@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
@@ -22,11 +23,15 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.cast.CastPlayer
 import com.aruvi.tir.data.model.FileItem
 import com.aruvi.tir.data.repository.AuthRepository
 import com.aruvi.tir.data.repository.FilesRepository
 import com.aruvi.tir.data.repository.SettingsRepository
 import com.aruvi.tir.service.AudioPlaybackService
+import com.google.android.gms.cast.framework.CastContext
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManagerListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -97,7 +102,8 @@ data class PlayerUiState(
     val preferredQuality: String = "auto",
     val isAudioFile: Boolean = false,
     val folderAudioFiles: List<FileItem> = emptyList(),
-    val currentAudioIndex: Int = -1
+    val currentAudioIndex: Int = -1,
+    val isCasting: Boolean = false
 )
 
 @HiltViewModel
@@ -108,7 +114,8 @@ class PlayerViewModel @Inject constructor(
     private val httpDataSourceFactory: DefaultHttpDataSource.Factory,
     private val filesRepository: FilesRepository,
     private val settingsRepository: SettingsRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val castContext: CastContext
 ) : ViewModel() {
 
     fun setResizeMode(mode: Int) {
@@ -165,7 +172,40 @@ class PlayerViewModel @Inject constructor(
     private var consecutiveSeekCount: Int = 0
     private var lastSeekTime: Long = 0L
 
+    private val castPlayer: CastPlayer by lazy { CastPlayer(castContext) }
+
+    private var activeCastSession: CastSession? = null
+
+    private val sessionManagerListener = object : SessionManagerListener<CastSession> {
+        override fun onSessionStarted(session: CastSession, sessionId: String) {
+            activeCastSession = session
+            _uiState.value = _uiState.value.copy(isCasting = true)
+            exoPlayer.pause()
+            castToDevice()
+        }
+
+        override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
+            activeCastSession = session
+            _uiState.value = _uiState.value.copy(isCasting = true)
+            exoPlayer.pause()
+        }
+
+        override fun onSessionEnded(session: CastSession, error: Int) {
+            activeCastSession = null
+            _uiState.value = _uiState.value.copy(isCasting = false)
+            exoPlayer.play()
+        }
+
+        override fun onSessionSuspended(session: CastSession, reason: Int) {}
+        override fun onSessionStarting(session: CastSession) {}
+        override fun onSessionStartFailed(session: CastSession, error: Int) {}
+        override fun onSessionEnding(session: CastSession) {}
+        override fun onSessionResuming(session: CastSession, sessionId: String) {}
+        override fun onSessionResumeFailed(session: CastSession, error: Int) {}
+    }
+
     init {
+        castContext.sessionManager.addSessionManagerListener(sessionManagerListener, CastSession::class.java)
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -600,6 +640,41 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    private fun castToDevice() {
+        viewModelScope.launch {
+            val serverUrl = settingsRepository.getServerUrl()
+            val token = authRepository.getAccessToken()
+            val url = if (token != null) {
+                "$serverUrl/api/stream/$currentFileId?token=$token"
+            } else {
+                "$serverUrl/api/stream/$currentFileId"
+            }
+            val file = _uiState.value.file
+            val title = file?.fileName ?: "Aruvi"
+            val thumbnailUrl = if (file?.thumbnailFileId != null) {
+                "$serverUrl/api/stream/$currentFileId/thumbnail" + (if (token != null) "?token=$token" else "")
+            } else null
+            val mediaMetadata = MediaMetadata.Builder()
+                .setTitle(title)
+                .setArtworkUri(thumbnailUrl?.let { Uri.parse(it) })
+                .build()
+            castPlayer.setMediaItem(
+                MediaItem.Builder()
+                    .setUri(url)
+                    .setMediaId(currentFileId.toString())
+                    .setMediaMetadata(mediaMetadata)
+                    .build()
+            )
+            castPlayer.prepare()
+            castPlayer.play()
+        }
+    }
+
+    fun stopCasting() {
+        castPlayer.stop()
+        castPlayer.clearMediaItems()
+    }
+
     fun play() {
         exoPlayer.play()
     }
@@ -609,6 +684,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
+        val state = exoPlayer.playbackState
+        if (state != Player.STATE_READY && state != Player.STATE_BUFFERING) return
         val clampedPosition = positionMs.coerceIn(0, exoPlayer.duration)
         exoPlayer.seekTo(clampedPosition)
         updatePosition()
@@ -850,6 +927,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        castContext.sessionManager.removeSessionManagerListener(sessionManagerListener, CastSession::class.java)
         saveProgress()
         if (!isBackgroundAudioActive) {
             exoPlayer.stop()

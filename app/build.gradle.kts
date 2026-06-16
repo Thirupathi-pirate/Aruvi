@@ -148,6 +148,11 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-hls:1.2.1")
     implementation("androidx.media3:media3-datasource-okhttp:1.2.1")
 
+    // Chromecast - Media3 Cast extension
+    implementation("androidx.media3:media3-cast:1.2.1")
+    implementation("com.google.android.gms:play-services-cast-framework:21.4.0")
+    implementation("androidx.mediarouter:mediarouter:1.6.0")
+
     // Note: Standard ExoPlayer supports HEVC, VP9, Opus, AAC, and most common formats
     // For DTS/AC3 software decoding, add FFmpeg extension manually if needed
 

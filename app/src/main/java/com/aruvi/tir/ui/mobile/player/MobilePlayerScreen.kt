@@ -493,18 +493,14 @@ fun MobilePlayerControls(
                     ) {
                         AndroidView(
                             factory = { ctx ->
+                                val btn = MediaRouteButton(ctx)
                                 try {
-                                    MediaRouteButton(ctx).also { btn: MediaRouteButton ->
-                                        try {
-                                            val clazz = Class.forName("com.google.android.gms.cast.framework.CastButtonFactory")
-                                            clazz.getMethod("setUpMediaRouteButton", android.content.Context::class.java, MediaRouteButton::class.java)
-                                                .invoke(null, ctx, btn)
-                                        } catch (_: Throwable) {}
-                                        btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)
-                                    }
-                                } catch (_: Throwable) {
-                                    null
-                                }
+                                    val clazz = Class.forName("com.google.android.gms.cast.framework.CastButtonFactory")
+                                    clazz.getMethod("setUpMediaRouteButton", android.content.Context::class.java, MediaRouteButton::class.java)
+                                        .invoke(null, ctx, btn)
+                                } catch (_: Throwable) {}
+                                btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)
+                                btn
                             },
                             modifier = Modifier.size(48.dp)
                         )

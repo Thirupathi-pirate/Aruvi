@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -170,13 +171,7 @@ class PlayerViewModel @Inject constructor(
     private var consecutiveSeekCount: Int = 0
     private var lastSeekTime: Long = 0L
 
-    @OptIn(UnstableApi::class)
-    private val castPlayer: CastPlayer? = try {
-        val castContext = CastContext.getSharedInstance(context)
-        CastPlayer(castContext)
-    } catch (_: Throwable) {
-        null
-    }
+    private var castPlayer: CastPlayer? = null
 
     private val castPlayerListener = object : Player.Listener {
         override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
@@ -193,7 +188,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     init {
-        castPlayer?.addListener(castPlayerListener)
+        initCastPlayer()
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -202,6 +197,22 @@ class PlayerViewModel @Inject constructor(
         loadAndPlay()
         startProgressTracking()
         observeQuality()
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun initCastPlayer() {
+        viewModelScope.launch {
+            val player = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val castContext = CastContext.getSharedInstance(context)
+                    CastPlayer(castContext)
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+            castPlayer = player
+            player?.addListener(castPlayerListener)
+        }
     }
 
     @OptIn(UnstableApi::class)

@@ -201,18 +201,24 @@ class PlayerViewModel @Inject constructor(
 
     @OptIn(UnstableApi::class)
     private fun initCastPlayer() {
-        viewModelScope.launch {
-            val player = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                try {
-                    val castContext = CastContext.getSharedInstance(context)
-                    CastPlayer(castContext)
-                } catch (_: Throwable) {
-                    null
+        val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+        com.google.android.gms.cast.framework.CastContext.getSharedInstance(context, executor)
+            .addOnSuccessListener { castContext ->
+                viewModelScope.launch {
+                    val player = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            CastPlayer(castContext)
+                        } catch (_: Throwable) {
+                            null
+                        }
+                    }
+                    castPlayer = player
+                    player?.addListener(castPlayerListener)
                 }
             }
-            castPlayer = player
-            player?.addListener(castPlayerListener)
-        }
+            .addOnFailureListener {
+                castPlayer = null
+            }
     }
 
     @OptIn(UnstableApi::class)

@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.mediarouter.app.MediaRouteButton
-import com.google.android.gms.cast.framework.CastButtonFactory
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -494,13 +493,17 @@ fun MobilePlayerControls(
                     ) {
                         AndroidView(
                             factory = { ctx ->
-                                MediaRouteButton(ctx).also { btn: MediaRouteButton ->
-                                    try {
-                                        CastButtonFactory.setUpMediaRouteButton(ctx, btn)
-                                    } catch (_: Throwable) {
-                                        // Google Play Services not available
+                                try {
+                                    MediaRouteButton(ctx).also { btn: MediaRouteButton ->
+                                        try {
+                                            val clazz = Class.forName("com.google.android.gms.cast.framework.CastButtonFactory")
+                                            clazz.getMethod("setUpMediaRouteButton", android.content.Context::class.java, MediaRouteButton::class.java)
+                                                .invoke(null, ctx, btn)
+                                        } catch (_: Throwable) {}
+                                        btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)
                                     }
-                                    btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)
+                                } catch (_: Throwable) {
+                                    null
                                 }
                             },
                             modifier = Modifier.size(48.dp)

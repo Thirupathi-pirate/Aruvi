@@ -18,10 +18,6 @@ object CastModule {
     fun provideCastContext(
         @ApplicationContext context: Context
     ): CastContext? {
-        return try {
-            CastContext.getSharedInstance(context)
-        } catch (_: Throwable) {
-            null
-        }
+        return CastHelper.createCastContext(context)
     }
 }

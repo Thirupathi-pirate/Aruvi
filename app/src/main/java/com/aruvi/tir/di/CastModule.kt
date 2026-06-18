@@ -20,7 +20,7 @@ object CastModule {
     ): CastContext? {
         return try {
             CastContext.getSharedInstance(context)
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             null
         }
     }

@@ -22,6 +22,10 @@
 # ExoPlayer / Media3
 -keep class androidx.media3.** { *; }
 
+# Google Cast Framework
+-keep class com.google.android.gms.cast.** { *; }
+-keep class com.google.android.gms.cast.framework.** { *; }
+
 # FFmpeg extension
 -keep class com.github.ArmynC.** { *; }
 

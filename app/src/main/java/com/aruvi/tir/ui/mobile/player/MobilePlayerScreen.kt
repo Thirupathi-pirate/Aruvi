@@ -497,7 +497,7 @@ fun MobilePlayerControls(
                                 MediaRouteButton(ctx).also { btn: MediaRouteButton ->
                                     try {
                                         CastButtonFactory.setUpMediaRouteButton(ctx, btn)
-                                    } catch (_: Exception) {
+                                    } catch (_: Throwable) {
                                         // Google Play Services not available
                                     }
                                     btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)

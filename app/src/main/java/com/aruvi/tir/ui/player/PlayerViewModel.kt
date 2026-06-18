@@ -172,7 +172,9 @@ class PlayerViewModel @Inject constructor(
     private var consecutiveSeekCount: Int = 0
     private var lastSeekTime: Long = 0L
 
-    private val castPlayer: CastPlayer? = castContext?.let { CastPlayer(it) }
+    private val castPlayer: CastPlayer? = castContext?.let {
+        try { CastPlayer(it) } catch (_: Throwable) { null }
+    }
 
     private var activeCastSession: CastSession? = null
 

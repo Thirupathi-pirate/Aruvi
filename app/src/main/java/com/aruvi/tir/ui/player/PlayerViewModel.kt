@@ -207,7 +207,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     init {
-        castContext?.sessionManager?.addSessionManagerListener(sessionManagerListener, CastSession::class.java)
+        try { castContext?.sessionManager?.addSessionManagerListener(sessionManagerListener, CastSession::class.java) } catch (_: Throwable) {}
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -930,7 +930,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        castContext?.sessionManager?.removeSessionManagerListener(sessionManagerListener, CastSession::class.java)
+        try { castContext?.sessionManager?.removeSessionManagerListener(sessionManagerListener, CastSession::class.java) } catch (_: Throwable) {}
         saveProgress()
         if (!isBackgroundAudioActive) {
             exoPlayer.stop()

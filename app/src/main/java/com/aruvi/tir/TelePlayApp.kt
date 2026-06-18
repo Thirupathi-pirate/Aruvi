@@ -5,7 +5,6 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
-import com.google.android.gms.cast.framework.CastContext
 import dagger.hilt.android.HiltAndroidApp
 import okhttp3.OkHttpClient
 import javax.inject.Inject
@@ -22,7 +21,6 @@ class TelePlayApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
-        CastContext.getSharedInstance(this)
     }
 
     override fun newImageLoader(): ImageLoader {

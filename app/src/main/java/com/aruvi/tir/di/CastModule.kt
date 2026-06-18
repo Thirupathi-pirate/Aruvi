@@ -17,7 +17,11 @@ object CastModule {
     @Singleton
     fun provideCastContext(
         @ApplicationContext context: Context
-    ): CastContext {
-        return CastContext.getSharedInstance(context)
+    ): CastContext? {
+        return try {
+            CastContext.getSharedInstance(context)
+        } catch (_: Exception) {
+            null
+        }
     }
 }

@@ -115,7 +115,7 @@ class PlayerViewModel @Inject constructor(
     private val filesRepository: FilesRepository,
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository,
-    private val castContext: CastContext
+    private val castContext: CastContext?
 ) : ViewModel() {
 
     fun setResizeMode(mode: Int) {
@@ -172,7 +172,7 @@ class PlayerViewModel @Inject constructor(
     private var consecutiveSeekCount: Int = 0
     private var lastSeekTime: Long = 0L
 
-    private val castPlayer: CastPlayer by lazy { CastPlayer(castContext) }
+    private val castPlayer: CastPlayer? = castContext?.let { CastPlayer(it) }
 
     private var activeCastSession: CastSession? = null
 
@@ -205,7 +205,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     init {
-        castContext.sessionManager.addSessionManagerListener(sessionManagerListener, CastSession::class.java)
+        castContext?.sessionManager?.addSessionManagerListener(sessionManagerListener, CastSession::class.java)
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -641,6 +641,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun castToDevice() {
+        val player = castPlayer ?: return
         viewModelScope.launch {
             val serverUrl = settingsRepository.getServerUrl()
             val token = authRepository.getAccessToken()
@@ -658,21 +659,21 @@ class PlayerViewModel @Inject constructor(
                 .setTitle(title)
                 .setArtworkUri(thumbnailUrl?.let { Uri.parse(it) })
                 .build()
-            castPlayer.setMediaItem(
+            player.setMediaItem(
                 MediaItem.Builder()
                     .setUri(url)
                     .setMediaId(currentFileId.toString())
                     .setMediaMetadata(mediaMetadata)
                     .build()
             )
-            castPlayer.prepare()
-            castPlayer.play()
+            player.prepare()
+            player.play()
         }
     }
 
     fun stopCasting() {
-        castPlayer.stop()
-        castPlayer.clearMediaItems()
+        castPlayer?.stop()
+        castPlayer?.clearMediaItems()
     }
 
     fun play() {
@@ -927,7 +928,7 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        castContext.sessionManager.removeSessionManagerListener(sessionManagerListener, CastSession::class.java)
+        castContext?.sessionManager?.removeSessionManagerListener(sessionManagerListener, CastSession::class.java)
         saveProgress()
         if (!isBackgroundAudioActive) {
             exoPlayer.stop()

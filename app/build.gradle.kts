@@ -30,8 +30,8 @@ android {
         create("mobile") {
             dimension = "device"
             targetSdk = 36
-            versionCode = 10
-            versionName = "0.2.0"
+            versionCode = 11
+            versionName = "0.2.1"
         }
     }
 
@@ -150,7 +150,7 @@ dependencies {
 
     // Chromecast - Media3 Cast extension
     implementation("androidx.media3:media3-cast:1.2.1")
-    implementation("com.google.android.gms:play-services-cast-framework:21.4.0")
+    implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
     implementation("androidx.mediarouter:mediarouter:1.6.0")
 
     // Note: Standard ExoPlayer supports HEVC, VP9, Opus, AAC, and most common formats

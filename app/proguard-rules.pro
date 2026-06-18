@@ -25,6 +25,7 @@
 # Google Cast Framework
 -keep class com.google.android.gms.cast.** { *; }
 -keep class com.google.android.gms.cast.framework.** { *; }
+-keep class androidx.mediarouter.app.MediaRouteActionProvider { *; }
 
 # FFmpeg extension
 -keep class com.github.ArmynC.** { *; }

@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
@@ -26,8 +27,8 @@ import com.aruvi.tir.data.model.FileItem
 import com.aruvi.tir.data.repository.AuthRepository
 import com.aruvi.tir.data.repository.FilesRepository
 import com.aruvi.tir.data.repository.SettingsRepository
-import com.aruvi.tir.di.CastHelper
-import com.aruvi.tir.di.SessionCallbacks
+import androidx.media3.cast.CastPlayer
+import androidx.media3.common.DeviceInfo
 import com.aruvi.tir.service.AudioPlaybackService
 import com.google.android.gms.cast.framework.CastContext
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,7 +114,6 @@ class PlayerViewModel @Inject constructor(
     private val filesRepository: FilesRepository,
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository,
-    private val castContext: CastContext?
 ) : ViewModel() {
 
     fun setResizeMode(mode: Int) {
@@ -170,36 +170,30 @@ class PlayerViewModel @Inject constructor(
     private var consecutiveSeekCount: Int = 0
     private var lastSeekTime: Long = 0L
 
-    private val castPlayer: Any? = castContext?.let {
-        try {
-            val clazz = Class.forName("androidx.media3.cast.CastPlayer")
-            clazz.getConstructor(CastContext::class.java).newInstance(it)
-        } catch (_: Throwable) { null }
+    @OptIn(UnstableApi::class)
+    private val castPlayer: CastPlayer? = try {
+        val castContext = CastContext.getSharedInstance(context)
+        CastPlayer(castContext)
+    } catch (_: Throwable) {
+        null
     }
 
-    private var sessionListenerHandle: Any? = null
+    private val castPlayerListener = object : Player.Listener {
+        override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
+            when (deviceInfo.playbackType) {
+                DeviceInfo.PLAYBACK_TYPE_LOCAL -> {
+                    _uiState.value = _uiState.value.copy(isCasting = false)
+                }
+                DeviceInfo.PLAYBACK_TYPE_REMOTE -> {
+                    _uiState.value = _uiState.value.copy(isCasting = true)
+                    exoPlayer.pause()
+                }
+            }
+        }
+    }
 
     init {
-        if (castContext != null && castPlayer != null) {
-            sessionListenerHandle = try {
-                CastHelper.registerSessionListener(castContext, SessionCallbacks(
-                    onStarted = {
-                        _uiState.value = _uiState.value.copy(isCasting = true)
-                        exoPlayer.pause()
-                        castToDevice()
-                    },
-                    onResumed = {
-                        _uiState.value = _uiState.value.copy(isCasting = true)
-                        exoPlayer.pause()
-                    },
-                    onEnded = {
-                        _uiState.value = _uiState.value.copy(isCasting = false)
-                        exoPlayer.play()
-                    },
-                    onSuspended = {}
-                ))
-            } catch (_: Throwable) { null }
-        }
+        castPlayer?.addListener(castPlayerListener)
         exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
             .buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -649,12 +643,30 @@ class PlayerViewModel @Inject constructor(
             val thumbnailUrl = if (file?.thumbnailFileId != null) {
                 "$serverUrl/api/stream/$currentFileId/thumbnail" + (if (token != null) "?token=$token" else "")
             } else null
-            CastHelper.castToDevice(player, exoPlayer, url, currentFileId.toString(), title, thumbnailUrl)
+
+            try {
+                val mediaMetadata = MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setArtworkUri(thumbnailUrl?.let { Uri.parse(it) })
+                    .build()
+                val mediaItem = MediaItem.Builder()
+                    .setUri(url)
+                    .setMediaId(currentFileId.toString())
+                    .setMediaMetadata(mediaMetadata)
+                    .build()
+                exoPlayer.pause()
+                player.setMediaItem(mediaItem)
+                player.prepare()
+                player.play()
+            } catch (_: Throwable) {}
         }
     }
 
     fun stopCasting() {
-        CastHelper.stopCasting(castPlayer)
+        try {
+            castPlayer?.stop()
+            castPlayer?.clearMediaItems()
+        } catch (_: Throwable) {}
     }
 
     fun play() {
@@ -909,8 +921,9 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        if (castContext != null) {
-            try { CastHelper.unregisterSessionListener(castContext, sessionListenerHandle) } catch (_: Throwable) {}
+        castPlayer?.let {
+            try { it.removeListener(castPlayerListener) } catch (_: Throwable) {}
+            try { it.release() } catch (_: Throwable) {}
         }
         saveProgress()
         if (!isBackgroundAudioActive) {

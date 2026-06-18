@@ -30,8 +30,8 @@ android {
         create("mobile") {
             dimension = "device"
             targetSdk = 36
-            versionCode = 9
-            versionName = "3.0.0"
+            versionCode = 10
+            versionName = "0.2.0"
         }
     }
 

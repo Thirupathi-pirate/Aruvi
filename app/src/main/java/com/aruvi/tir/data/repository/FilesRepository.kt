@@ -23,7 +23,7 @@ class FilesRepository @Inject constructor(
         fileType: String? = null
     ): Result<PaginatedResponse<FileItem>> {
         return try {
-            val response = api.getFiles(folderId, page, perPage, fileType)
+            val response = api.getFiles(folderId, page, perPage, fileType, includeAll = true)
             if (response.isSuccessful) {
                 Result.success(response.body()!!)
             } else {

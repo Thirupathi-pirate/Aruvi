@@ -1,7 +1,7 @@
 package com.aruvi.tir.ui.mobile
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -11,7 +11,7 @@ import javax.inject.Inject
 import androidx.activity.enableEdgeToEdge
 
 @AndroidEntryPoint
-class MobileMainActivity : ComponentActivity() {
+class MobileMainActivity : FragmentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository

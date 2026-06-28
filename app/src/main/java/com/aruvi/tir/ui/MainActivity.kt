@@ -1,7 +1,7 @@
 package com.aruvi.tir.ui
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -19,7 +19,7 @@ import javax.inject.Inject
  * Serves as the entry point and hosts the Compose navigation.
  */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository

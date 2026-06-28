@@ -5,7 +5,9 @@
         android:required="true" />
 
     <application>
-        <activity android:name=".ui.mobile.MobileMainActivity">
+        <activity
+            android:name=".ui.mobile.MobileMainActivity"
+            android:theme="@style/Theme.Aruvi.Mobile">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

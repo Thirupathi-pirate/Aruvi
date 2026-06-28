@@ -61,7 +61,8 @@ interface TelePlayApi {
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 20,
         @Query("file_type") fileType: String? = null,
-        @Query("search") search: String? = null
+        @Query("search") search: String? = null,
+        @Query("include_all") includeAll: Boolean = true
     ): Response<PaginatedResponse<FileItem>>
 
     /**

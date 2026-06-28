@@ -51,6 +51,7 @@ import com.aruvi.tir.ui.player.PlayerViewModel
 import com.aruvi.tir.ui.player.TrackInfo
 import com.aruvi.tir.ui.player.SubtitleSize
 import com.aruvi.tir.ui.mobile.findActivity
+import com.aruvi.tir.ui.mobile.findFragmentActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -493,8 +494,10 @@ fun MobilePlayerControls(
                     ) {
                         AndroidView(
                             factory = { ctx ->
-                                val btn = MediaRouteButton(ctx)
+                                val activity = ctx.findFragmentActivity()
+                                val btn = MediaRouteButton(activity ?: ctx)
                                 btn.layoutParams = ViewGroup.LayoutParams(buttonSizePx, buttonSizePx)
+                                btn.setBackgroundColor(android.graphics.Color.BLACK)
                                 btn
                             },
                             modifier = Modifier.size(48.dp)

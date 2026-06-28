@@ -8,6 +8,7 @@ import com.aruvi.tir.data.model.TVBrowseResponse
 import com.aruvi.tir.data.repository.FilesRepository
 import com.aruvi.tir.data.repository.FoldersRepository
 import com.aruvi.tir.data.repository.SettingsRepository
+import com.aruvi.tir.ui.components.toUserFriendlyMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,7 +68,10 @@ class HomeViewModel @Inject constructor(
                         folders = browse.folders
                     )
                 },
-                onFailure = { _ ->
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.toUserFriendlyMessage()
+                    )
                     // Fallback to individual calls if TV browse fails
                     loadDataFallback()
                 }

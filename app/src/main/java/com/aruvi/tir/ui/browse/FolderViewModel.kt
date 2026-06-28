@@ -8,6 +8,7 @@ import com.aruvi.tir.data.model.Folder
 import com.aruvi.tir.data.model.FolderDetail
 import com.aruvi.tir.data.repository.FoldersRepository
 import com.aruvi.tir.data.repository.SettingsRepository
+import com.aruvi.tir.ui.components.toUserFriendlyMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,7 +72,7 @@ class FolderViewModel @Inject constructor(
                 onFailure = { e ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to load folder"
+                        error = e.toUserFriendlyMessage()
                     )
                 }
             )

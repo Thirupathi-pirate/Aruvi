@@ -9,6 +9,7 @@ import com.aruvi.tir.data.model.AuthResponse
 import com.aruvi.tir.data.model.LoginCodeResponse
 import com.aruvi.tir.data.repository.AuthRepository
 import com.aruvi.tir.data.repository.SettingsRepository
+import com.aruvi.tir.ui.components.toUserFriendlyMessage
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,6 +81,10 @@ class LoginViewModel @Inject constructor(
             authRepository.getBotInfo().onSuccess { botInfo ->
                 _uiState.value = _uiState.value.copy(botUsername = botInfo.username)
                 settingsRepository.setBotUsername(botInfo.username)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    error = e.toUserFriendlyMessage()
+                )
             }
         }
     }
@@ -147,7 +152,7 @@ class LoginViewModel @Inject constructor(
                         e.printStackTrace()
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = "Failed: ${e.message}",
+                            error = e.toUserFriendlyMessage(),
                             debugLog = _uiState.value.debugLog + "Failed: ${e.message}\n"
                         )
                     }
@@ -155,7 +160,7 @@ class LoginViewModel @Inject constructor(
             } catch (e: Exception) {
                  _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Crash: ${e.message}",
+                    error = e.toUserFriendlyMessage(),
                     debugLog = _uiState.value.debugLog + "Crash: ${e.message}\n"
                 )
             }

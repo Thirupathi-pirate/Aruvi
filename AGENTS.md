@@ -38,7 +38,7 @@ Remote: `git remote add workflow https://github.com/Thirupathi-pirate/Aruvi-work
 Passwords via env vars (`RELEASE_STORE_PASSWORD`, `RELEASE_KEY_PASSWORD`) or `local.properties`. Keystore: `../my-release-key.jks` (relative to `app/`).
 
 ## Server URL
-Default: `https://lavender7736-teleplay-backend.hf.space`. Override in `local.properties` (`TELEGRAM_TV_SERVER_URL`) or in-app settings.
+Default: `https://movie.aaruvi.space`. Override in `local.properties` (`TELEGRAM_TV_SERVER_URL`) or in-app settings.
 
 ## Key conventions
 - **R8 full mode disabled** — `android.enableR8.fullMode=false` in `gradle.properties` (breaks Retrofit/Gson)

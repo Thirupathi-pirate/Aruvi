@@ -111,7 +111,7 @@ class PlayerViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context,
     val exoPlayer: ExoPlayer,
-    private val httpDataSourceFactory: DefaultHttpDataSource.Factory,
+    private val dataSourceFactory: DefaultDataSource.Factory,
     private val filesRepository: FilesRepository,
     private val settingsRepository: SettingsRepository,
     private val authRepository: AuthRepository,
@@ -202,23 +202,37 @@ class PlayerViewModel @Inject constructor(
     @OptIn(UnstableApi::class)
     private fun initCastPlayer() {
         val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
-        com.google.android.gms.cast.framework.CastContext.getSharedInstance(context, executor)
-            .addOnSuccessListener { castContext ->
-                viewModelScope.launch {
-                    val player = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        try {
-                            CastPlayer(castContext)
-                        } catch (_: Throwable) {
-                            null
-                        }
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            try {
+                // Defensive initialization of CastContext to avoid DeadObjectException on Main thread
+                val castContextTask = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        CastContext.getSharedInstance(context, executor)
+                    } catch (e: Exception) {
+                        null
                     }
-                    castPlayer = player
-                    player?.addListener(castPlayerListener)
                 }
-            }
-            .addOnFailureListener {
+
+                castContextTask?.addOnSuccessListener { castContext ->
+                    viewModelScope.launch {
+                        val player = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                CastPlayer(castContext)
+                            } catch (_: Throwable) {
+                                null
+                            }
+                        }
+                        castPlayer = player
+                        player?.addListener(castPlayerListener)
+                    }
+                }?.addOnFailureListener {
+                    castPlayer = null
+                }
+            } catch (e: Exception) {
+                // Ignore GMS failures
                 castPlayer = null
             }
+        }
     }
 
     @OptIn(UnstableApi::class)
@@ -544,28 +558,21 @@ class PlayerViewModel @Inject constructor(
                             .setUri(localUri)
                             .setMediaId(currentFileId.toString())
                             .build()
-                        mediaSourceFactory = DefaultMediaSourceFactory(
-                            DefaultDataSource.Factory(context, httpDataSourceFactory)
-                        )
+                        // Use a basic data source for local files
+                        mediaSourceFactory = DefaultMediaSourceFactory(context)
                     } else {
-                        val serverUrl = settingsRepository.getServerUrl()
-                        val token = authRepository.getAccessToken()
+                        val serverUrl = settingsRepository.getServerUrl().trimEnd('/')
 
-                        httpDataSourceFactory.setDefaultRequestProperties(
-                            if (token != null) {
-                                mapOf("Authorization" to "Bearer $token")
-                            } else {
-                                emptyMap()
-                            }
-                        )
-
+                        // Note: Authentication is already handled by AuthInterceptor in OkHttp,
+                        // which is used by the DefaultDataSource.Factory provided via Hilt.
+                        
                         val streamUrl = "$serverUrl/api/stream/$currentFileId"
                         mediaItem = MediaItem.Builder()
                             .setUri(streamUrl)
                             .setMediaId(currentFileId.toString())
                             .build()
-                        httpDataSourceFactory.setAllowCrossProtocolRedirects(true)
-                        mediaSourceFactory = DefaultMediaSourceFactory(httpDataSourceFactory)
+                        
+                        mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
                     }
 
                     exoPlayer.setMediaSource(mediaSourceFactory.createMediaSource(mediaItem))
@@ -648,15 +655,20 @@ class PlayerViewModel @Inject constructor(
     private fun castToDevice() {
         val player = castPlayer ?: return
         viewModelScope.launch {
-            val serverUrl = settingsRepository.getServerUrl()
+            val serverUrl = settingsRepository.getServerUrl().trimEnd('/')
             val token = authRepository.getAccessToken()
+            
+            // For Cast, we MUST use a query parameter as CastPlayer doesn't support headers easily
             val url = if (token != null) {
                 "$serverUrl/api/stream/$currentFileId?token=$token"
             } else {
                 "$serverUrl/api/stream/$currentFileId"
             }
+            
             val file = _uiState.value.file
             val title = file?.fileName ?: "Aruvi"
+            
+            // Use query param for thumbnail as well for the cast device
             val thumbnailUrl = if (file?.thumbnailFileId != null) {
                 "$serverUrl/api/stream/$currentFileId/thumbnail" + (if (token != null) "?token=$token" else "")
             } else null

@@ -17,7 +17,7 @@ Stream your Telegram media on Android phone, tablet, and TV.
 
 ## Setup
 
-The app is pre-configured to connect to `https://lavender7736-teleplay-backend.hf.space`.
+The app is pre-configured to connect to `https://movie.aaruvi.space`.
 
 1. Open the app
 2. A login code appears on screen

@@ -39,7 +39,7 @@ android {
         applicationId = "com.aruvi.tir"
         minSdk = 29
 
-        val serverUrl = localProperties.getProperty("TELEGRAM_TV_SERVER_URL", "https://lavender7736-teleplay-backend.hf.space")
+        val serverUrl = localProperties.getProperty("TELEGRAM_TV_SERVER_URL", "https://movie.aaruvi.space")
         buildConfigField("String", "DEFAULT_SERVER_URL", "\"$serverUrl\"")
     }
 
